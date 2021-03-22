@@ -29,6 +29,7 @@ def download_html(url, file_path):
     res = scraper.get(url)
     # print(html)
 
+    # TODO: 保存されるHTMLがSJISになっている
     with open(file_path, mode='w') as f:
         f.write(res.text)
 
@@ -211,6 +212,7 @@ def prepare_soup(url, html_dir, excel_dir, name, dw, dest_setting, color_setting
     updated_date = datetime(int(u_year), int(u_mon), int(u_day)).strftime('%Y%m%d')
     # print(updated_date)
 
+    # TODO: 全部同じExcelにしてシートだけ分けたい
     excel_name = updated_date + '_' + name + '_' + dw
     excel_path_up = os.path.join(excel_dir, excel_name + '_up.xlsx')
     excel_path_down = os.path.join(excel_dir, excel_name + '_down.xlsx')
