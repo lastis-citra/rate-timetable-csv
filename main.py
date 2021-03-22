@@ -1,19 +1,24 @@
 import csv
-
-import requests
-from bs4 import BeautifulSoup
-import cloudscraper
 import os
+from datetime import date
+from datetime import datetime
+import re
+import logging
+
+import cloudscraper
+from bs4 import BeautifulSoup
 from openpyxl import Workbook
 from openpyxl.styles import Font
-from openpyxl.styles.alignment import Alignment
 from openpyxl.styles import PatternFill
+from openpyxl.styles.alignment import Alignment
 from openpyxl.styles.borders import Border, Side
 
 
+logger = logging.getLogger(__name__)
+
+
 # HTMLをダウンロードしてsoupを返す
-def download_html(url):
-    # html = requests.get(url).text
+def download_html(url, file_path):
     scraper = cloudscraper.create_scraper(
         browser={
             'browser': 'chrome',
@@ -21,18 +26,13 @@ def download_html(url):
             'desktop': True
         }
     )
-    html = scraper.get(url).text
-    print(html)
+    res = scraper.get(url)
+    # print(html)
 
-    dir = 'html'
-    if not os.path.exists(dir):
-        os.makedirs(dir)
-    path = os.path.join(dir, 'test.html')
+    with open(file_path, mode='w') as f:
+        f.write(res.text)
 
-    with open(path, mode='w') as f:
-        f.write(html)
-
-    soup = BeautifulSoup(html)
+    soup = BeautifulSoup(res.content, 'html.parser')
     return soup
 
 
@@ -44,33 +44,32 @@ def open_cache(path):
 
 # 結果をExcelに出力する
 # https://qiita.com/orengepy/items/d10ad53fee5593b29e46
-def output_excel(list, types_list):
+def output_excel(result_list, types_list, excel_path, color_setting):
     wb = Workbook()
     ws = wb.active
 
     # 最も長い行数を求める
     max_x = 0
-    for y in list:
-        if max_x < len(y):
-            max_x = len(y)
+    for results in result_list:
+        if max_x < len(results):
+            max_x = len(results)
 
     # 最も長い行に合わせて空白を足す
-    list_added = []
-    for l in list:
-        lack = max_x - len(l)
-        l_added = l
-        for x in range(lack):
-            l_added.append("")
-        list_added.append(l_added)
+    results_list_added = []
+    for results in result_list:
+        lack = max_x - len(results)
+        results_added = results
+        for _ in range(lack):
+            results_added.append("")
+        results_list_added.append(results_added)
 
     types_list_added = []
     for types in types_list:
         lack = max_x - len(types)
         types_added = types
-        for x in range(lack):
+        for _ in range(lack):
             types_added.append("")
         types_list_added.append(types_added)
-
 
     dest_font = Font(name='メイリオ', size=8, color='000000')
     min_font = Font(name='メイリオ', size=11, color='000000')
@@ -82,12 +81,11 @@ def output_excel(list, types_list):
     dest_border = Border(top=side)
     min_border = Border(bottom=side)
 
-    def set_color(y, x, types_list):
-        file_name = './type_color_setting.txt'
-        with open(file_name, 'r', errors='replace', encoding="utf_8") as file:
+    def set_color(_y, _x, _types_list):
+        with open(color_setting, 'r', errors='replace', encoding="utf_8") as file:
             d = dict(filter(None, csv.reader(file)))
 
-        train_type = types_list[y][x]
+        train_type = _types_list[_y][_x]
         type_color = d[train_type]
         return Font(name=min_font.name, size=min_font.size, color=type_color)
 
@@ -115,35 +113,34 @@ def output_excel(list, types_list):
                 else:
                     sheet.cell(row=row, column=col).fill = even_fill
 
-    write_list_2d(ws, list, 2, 3)
+    write_list_2d(ws, results_list_added, 2, 3)
 
-    wb.save('test.xlsx')
+    wb.save(excel_path)
     wb.close()
 
 
-def create_time_table(table_soup):
+def create_time_table(table_soup, excel_path, dest_setting, color_setting):
     # 行き先を省略して1文字にする
-    def replace_dests(dests):
-        file_name = './dest_setting.txt'
-        with open(file_name, 'r', errors='replace', encoding="utf_8") as file:
+    def replace_dests(_dests):
+        with open(dest_setting, 'r', errors='replace', encoding="utf_8") as file:
             d = dict(filter(None, csv.reader(file)))
 
-        dests_replaced = []
-        for dest in dests:
+        _dests_replaced = []
+        for _dest in _dests:
             # 辞書dのkeyに一致するものがあれば，そのvalueで置き換える
-            if dest in d:
-                dests_replaced.append(d[dest])
+            if _dest in d:
+                _dests_replaced.append(d[_dest])
             else:
-                dests_replaced.append(dest)
+                _dests_replaced.append(_dest)
 
-        return dests_replaced
+        return _dests_replaced
 
     # 当駅始発の場合は●に置換する
-    def replace_starts(starts):
+    def replace_starts(_starts):
         starts_replaced = []
-        for start in starts:
-            if start == "":
-                starts_replaced.append(start)
+        for _start in _starts:
+            if _start == '':
+                starts_replaced.append(_start)
             else:
                 starts_replaced.append("●")
 
@@ -189,14 +186,34 @@ def create_time_table(table_soup):
         result_list.append(dests)
         result_list.append(mins)
 
-    output_excel(result_list, types_list)
+    output_excel(result_list, types_list, excel_path, color_setting)
 
 
-def main_function(url, name):
-    # soup = download_html(url)
-    dir = 'html'
-    path = os.path.join(dir, 'test.html')
-    soup = open_cache(path)
+def prepare_soup(url, html_dir, excel_dir, name, dw, dest_setting, color_setting):
+    today = date.today()
+    today_string = today.strftime('%Y%m%d')
+
+    html_name = today_string + '_' + name + '_' + dw + '.html'
+    html_path = os.path.join(html_dir, html_name)
+
+    # 当日のキャッシュがある場合はキャッシュを利用し，なければダウンロードする
+    if os.path.exists(html_path):
+        soup = open_cache(html_path)
+    else:
+        soup = download_html(url, html_path)
+
+    # 時刻表の更新日時を取得
+    updated_date_text = soup.select_one('div.date time').text
+    updated_date_tuple = re.search(r'(\d+)年(\d+)月(\d+)日現在', updated_date_text).groups()
+    u_year = updated_date_tuple[0]
+    u_mon = updated_date_tuple[1]
+    u_day = updated_date_tuple[2]
+    updated_date = datetime(int(u_year), int(u_mon), int(u_day)).strftime('%Y%m%d')
+    # print(updated_date)
+
+    excel_name = updated_date + '_' + name + '_' + dw
+    excel_path_up = os.path.join(excel_dir, excel_name + '_up.xlsx')
+    excel_path_down = os.path.join(excel_dir, excel_name + '_down.xlsx')
 
     # <tr class="ek-hour_line">
     #   <td>07</td>
@@ -218,12 +235,17 @@ def main_function(url, name):
     #   </td>
     # </tr>
     tables = soup.select('div.search-result-body')
-    create_time_table(tables[0])
-    create_time_table(tables[1])
+
+    # 上り
+    if not os.path.exists(excel_path_up):
+        create_time_table(tables[0], excel_path_up, dest_setting, color_setting)
+
+    # 下り
+    if not os.path.exists(excel_path_down):
+        create_time_table(tables[1], excel_path_down, dest_setting, color_setting)
 
 
-if __name__ == '__main__':
-    file_name = './input_url_list.txt'
+def main_function(file_name, html_dir, excel_dir, setting_dir):
     with open(file_name, 'r', errors='replace', encoding="utf_8") as file:
         line_list = file.readlines()
 
@@ -232,7 +254,35 @@ if __name__ == '__main__':
     for line in line_list:
         line_count += 1
         input_url = line.split(',')[0]
-        file_name = line.split(',')[1].replace('\n', '')
+        file_name = line.split(',')[1]
+        dest_setting = os.path.join(setting_dir, line.split(',')[2])
+        color_setting = os.path.join(setting_dir, line.split(',')[3].replace('\n', ''))
         print(line_count, '/', len(line_list))
         print('input_url: ' + input_url)
-        main_function(input_url, file_name)
+
+        # TODO: 何故か両方同じHTMLが読み込まれているっぽい
+        # 平日分
+        input_url1 = input_url + '?dw=0'
+        prepare_soup(input_url1, html_dir, excel_dir, file_name, 'weekday', dest_setting, color_setting)
+        # 休日分
+        input_url2 = input_url + '?dw=2'
+        prepare_soup(input_url2, html_dir, excel_dir, file_name, 'holiday', dest_setting, color_setting)
+
+
+if __name__ == '__main__':
+    html_directory = 'html'
+    excel_directory = 'excel'
+    setting_directory = 'setting'
+    input_file_name = './input_url_list.txt'
+
+    if not os.path.exists(html_directory):
+        os.makedirs(html_directory)
+
+    if not os.path.exists(excel_directory):
+        os.makedirs(excel_directory)
+
+    if not os.path.exists(setting_directory):
+        logging.error('There is no setting directory!!!')
+        exit(1)
+
+    main_function(input_file_name, html_directory, excel_directory, setting_directory)
