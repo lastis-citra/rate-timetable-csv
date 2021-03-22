@@ -1,0 +1,1 @@
+https://ekitan.com/timetable/railway/line-station/94-7/d1,JR南武線_武蔵中原,dest_jr_nambu.txt,type_color_setting.txt

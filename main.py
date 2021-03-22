@@ -260,7 +260,6 @@ def main_function(file_name, html_dir, excel_dir, setting_dir):
         print(line_count, '/', len(line_list))
         print('input_url: ' + input_url)
 
-        # TODO: 何故か両方同じHTMLが読み込まれているっぽい
         # 平日分
         input_url1 = input_url + '?dw=0'
         prepare_soup(input_url1, html_dir, excel_dir, file_name, 'weekday', dest_setting, color_setting)
