@@ -46,7 +46,7 @@ def open_cache(path):
 # 結果をExcelに出力する
 # https://qiita.com/orengepy/items/d10ad53fee5593b29e46
 # result_listには行き先のリスト，分のリストが交互に入っている
-def output_excel(result_list, types_list, excel_path, color_setting, hours, min_hour):
+def output_excel(result_list, types_list, excel_path, color_setting, hours, min_hour, direction):
     wb = Workbook()
     ws = wb.active
 
@@ -96,10 +96,24 @@ def output_excel(result_list, types_list, excel_path, color_setting, hours, min_
     dest_border = Border(top=side)
     min_border = Border(bottom=side)
 
-    def set_color(_y, _x, _types_list):
+    def create_color_dict():
         with open(color_setting, 'r', errors='replace', encoding="utf_8") as file:
-            d = dict(filter(None, csv.reader(file)))
+            line_list = file.readlines()
 
+            _d = dict()
+            for line in line_list:
+                l_dir = line.split(',')[2].replace('\n', '')
+                print(l_dir + '_' + direction)
+                if l_dir == direction or l_dir == '':
+                    k = line.split(',')[0]
+                    v = line.split(',')[1]
+                    _d[k] = v
+            # d = dict(filter(None, csv.reader(file)))
+            return _d
+
+    d = create_color_dict()
+
+    def set_color(_y, _x, _types_list):
         train_type = _types_list[_y][_x]
         type_color = d[train_type]
         return Font(name=min_font.name, size=min_font.size, color=type_color)
@@ -134,7 +148,7 @@ def output_excel(result_list, types_list, excel_path, color_setting, hours, min_
     wb.close()
 
 
-def create_time_table(table_soup, excel_path, dest_setting, color_setting, min_hour):
+def create_time_table(table_soup, excel_path, dest_setting, color_setting, min_hour, direction):
     # 行き先を省略して1文字にする
     def replace_dests(_dests):
         with open(dest_setting, 'r', errors='replace', encoding="utf_8") as file:
@@ -200,7 +214,7 @@ def create_time_table(table_soup, excel_path, dest_setting, color_setting, min_h
         result_list.append(dests)
         result_list.append(mins)
 
-    output_excel(result_list, types_list, excel_path, color_setting, hours, min_hour)
+    output_excel(result_list, types_list, excel_path, color_setting, hours, min_hour, direction)
 
 
 def prepare_soup(url, html_dir, excel_dir, name, dw, dest_setting, color_setting, min_hour):
@@ -253,11 +267,11 @@ def prepare_soup(url, html_dir, excel_dir, name, dw, dest_setting, color_setting
 
     # 上り
     if not os.path.exists(excel_path_up):
-        create_time_table(tables[0], excel_path_up, dest_setting, color_setting, min_hour)
+        create_time_table(tables[0], excel_path_up, dest_setting, color_setting, min_hour, 'up')
 
     # 下り
     if not os.path.exists(excel_path_down):
-        create_time_table(tables[1], excel_path_down, dest_setting, color_setting, min_hour)
+        create_time_table(tables[1], excel_path_down, dest_setting, color_setting, min_hour, 'down')
 
 
 def main_function(file_name, html_dir, excel_dir, setting_dir):

@@ -1,2 +1,3 @@
 https://ekitan.com/timetable/railway/line-station/94-7/d1,JR南武線_武蔵中原,dest_jr_nambu.txt,type_color_setting.txt,4
 https://ekitan.com/timetable/railway/line-station/94-17/d1,JR南武線_稲城長沼,dest_jr_nambu.txt,type_color_setting.txt,4
+https://ekitan.com/timetable/railway/line-station/79-26/d1,JR京浜東北線_大井町,dest_jr_keihin_tohoku.txt,type_color_keihin_tohoku.txt,4
