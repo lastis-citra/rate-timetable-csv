@@ -49,8 +49,8 @@ def output_excel(result_list, types_list, excel_path, color_setting):
     wb = Workbook()
     ws = wb.active
 
-    # 最も長い行数を求める
-    max_x = 0
+    # 最も長い行数を求める（多めに背景色が塗られていた方が使いやすそうなので30をデフォルトに変更）
+    max_x = 30
     for results in result_list:
         if max_x < len(results):
             max_x = len(results)
@@ -64,6 +64,7 @@ def output_excel(result_list, types_list, excel_path, color_setting):
             results_added.append("")
         results_list_added.append(results_added)
 
+    # 最も長い行に合わせて空白を足す
     types_list_added = []
     for types in types_list:
         lack = max_x - len(types)
@@ -72,12 +73,16 @@ def output_excel(result_list, types_list, excel_path, color_setting):
             types_added.append("")
         types_list_added.append(types_added)
 
+    # フォント
     dest_font = Font(name='メイリオ', size=8, color='000000')
     min_font = Font(name='メイリオ', size=11, color='000000')
+    # 位置
     dest_align = Alignment(horizontal='center', vertical='top')
     min_align = Alignment(horizontal='center', vertical='center')
+    # 背景色
     odd_fill = PatternFill(patternType='solid', fgColor='ffffff')
     even_fill = PatternFill(patternType='solid', fgColor='f2f2f2')
+    # 罫線
     side = Side(style='thin', color='000000')
     dest_border = Border(top=side)
     min_border = Border(bottom=side)
