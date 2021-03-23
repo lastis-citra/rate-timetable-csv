@@ -146,6 +146,7 @@ def output_excel(result_list, types_list, excel_path, color_setting, hours, min_
     write_list_2d(ws, results_list_added, 2, 3)
 
     # セル幅の調整
+    # mod https://gist.github.com/bisco/a65e71c8ba45337f91174e6ae3c139f9
     def adjust_col(_ws):
         for col in _ws.columns:
             max_length = 0
