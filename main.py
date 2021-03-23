@@ -7,6 +7,7 @@ import logging
 
 import cloudscraper
 from bs4 import BeautifulSoup
+from openpyxl.utils import get_column_letter
 from openpyxl import Workbook
 from openpyxl.styles import Font
 from openpyxl.styles import PatternFill
@@ -103,7 +104,7 @@ def output_excel(result_list, types_list, excel_path, color_setting, hours, min_
             _d = dict()
             for line in line_list:
                 l_dir = line.split(',')[2].replace('\n', '')
-                print(l_dir + '_' + direction)
+                # print(l_dir + '_' + direction)
                 if l_dir == direction or l_dir == '':
                     k = line.split(',')[0]
                     v = line.split(',')[1]
@@ -143,6 +144,23 @@ def output_excel(result_list, types_list, excel_path, color_setting, hours, min_
                     sheet.cell(row=row, column=col).fill = even_fill
 
     write_list_2d(ws, results_list_added, 2, 3)
+
+    # セル幅の調整
+    def adjust_col(_ws):
+        for col in _ws.columns:
+            max_length = 0
+            column = col[0].column  # Get the column name
+            column = get_column_letter(column)
+            for cell in col:
+                try:  # Necessary to avoid error on empty cells
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(cell.value)
+                except:
+                    pass
+            adjusted_width = (max_length + 2) * 1.1
+            _ws.column_dimensions[column].width = adjusted_width
+
+    adjust_col(ws)
 
     wb.save(excel_path)
     wb.close()
