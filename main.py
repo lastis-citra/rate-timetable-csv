@@ -45,9 +45,18 @@ def open_cache(path):
 
 # 結果をExcelに出力する
 # https://qiita.com/orengepy/items/d10ad53fee5593b29e46
-def output_excel(result_list, types_list, excel_path, color_setting):
+# result_listには行き先のリスト，分のリストが交互に入っている
+def output_excel(result_list, types_list, excel_path, color_setting, hours, min_hour):
     wb = Workbook()
     ws = wb.active
+
+    # 開始の時に合うように先頭に足す
+    lack = int(hours[0]) - int(min_hour)
+    # print('lack: ' + str(lack))
+    for i in range(lack):
+        result_list.insert(0, list())
+        result_list.insert(0, list())
+        types_list.insert(0, list())
 
     # 最も長い行数を求める（多めに背景色が塗られていた方が使いやすそうなので30をデフォルトに変更）
     max_x = 30
@@ -61,7 +70,7 @@ def output_excel(result_list, types_list, excel_path, color_setting):
         lack = max_x - len(results)
         results_added = results
         for _ in range(lack):
-            results_added.append("")
+            results_added.append('')
         results_list_added.append(results_added)
 
     # 最も長い行に合わせて空白を足す
@@ -70,7 +79,7 @@ def output_excel(result_list, types_list, excel_path, color_setting):
         lack = max_x - len(types)
         types_added = types
         for _ in range(lack):
-            types_added.append("")
+            types_added.append('')
         types_list_added.append(types_added)
 
     # フォント
@@ -125,7 +134,7 @@ def output_excel(result_list, types_list, excel_path, color_setting):
     wb.close()
 
 
-def create_time_table(table_soup, excel_path, dest_setting, color_setting):
+def create_time_table(table_soup, excel_path, dest_setting, color_setting, min_hour):
     # 行き先を省略して1文字にする
     def replace_dests(_dests):
         with open(dest_setting, 'r', errors='replace', encoding="utf_8") as file:
@@ -154,9 +163,8 @@ def create_time_table(table_soup, excel_path, dest_setting, color_setting):
 
     tds = table_soup.select('tr.ek-hour_line td')
     # tdのlistから偶数番目を取り出して，それぞれのtextを取り出している
-    # 時刻のリスト，特に使っていない
     hours = list(map(lambda x: x.text, tds[0::2]))
-    print(hours)
+    # print(hours)
 
     # 種別のリスト
     types_list = []
@@ -192,10 +200,10 @@ def create_time_table(table_soup, excel_path, dest_setting, color_setting):
         result_list.append(dests)
         result_list.append(mins)
 
-    output_excel(result_list, types_list, excel_path, color_setting)
+    output_excel(result_list, types_list, excel_path, color_setting, hours, min_hour)
 
 
-def prepare_soup(url, html_dir, excel_dir, name, dw, dest_setting, color_setting):
+def prepare_soup(url, html_dir, excel_dir, name, dw, dest_setting, color_setting, min_hour):
     today = date.today()
     today_string = today.strftime('%Y%m%d')
 
@@ -245,11 +253,11 @@ def prepare_soup(url, html_dir, excel_dir, name, dw, dest_setting, color_setting
 
     # 上り
     if not os.path.exists(excel_path_up):
-        create_time_table(tables[0], excel_path_up, dest_setting, color_setting)
+        create_time_table(tables[0], excel_path_up, dest_setting, color_setting, min_hour)
 
     # 下り
     if not os.path.exists(excel_path_down):
-        create_time_table(tables[1], excel_path_down, dest_setting, color_setting)
+        create_time_table(tables[1], excel_path_down, dest_setting, color_setting, min_hour)
 
 
 def main_function(file_name, html_dir, excel_dir, setting_dir):
@@ -263,16 +271,18 @@ def main_function(file_name, html_dir, excel_dir, setting_dir):
         input_url = line.split(',')[0]
         file_name = line.split(',')[1]
         dest_setting = os.path.join(setting_dir, line.split(',')[2])
-        color_setting = os.path.join(setting_dir, line.split(',')[3].replace('\n', ''))
+        color_setting = os.path.join(setting_dir, line.split(',')[3])
+        # 何時から始めるか（上りと下りで開始時刻が違う場合など）
+        min_hour = line.split(',')[4].replace('\n', '')
         print(line_count, '/', len(line_list))
         print('input_url: ' + input_url)
 
         # 平日分
         input_url1 = input_url + '?dw=0'
-        prepare_soup(input_url1, html_dir, excel_dir, file_name, 'weekday', dest_setting, color_setting)
+        prepare_soup(input_url1, html_dir, excel_dir, file_name, 'weekday', dest_setting, color_setting, min_hour)
         # 休日分
         input_url2 = input_url + '?dw=2'
-        prepare_soup(input_url2, html_dir, excel_dir, file_name, 'holiday', dest_setting, color_setting)
+        prepare_soup(input_url2, html_dir, excel_dir, file_name, 'holiday', dest_setting, color_setting, min_hour)
 
 
 if __name__ == '__main__':
