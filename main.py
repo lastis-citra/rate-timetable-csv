@@ -4,6 +4,7 @@ from datetime import date
 from datetime import datetime
 import re
 import logging
+import xlsxwriter
 
 import cloudscraper
 from bs4 import BeautifulSoup
@@ -44,10 +45,163 @@ def open_cache(path):
     return soup
 
 
+
+# 結果をExcelに出力する
+# https://www.python-izm.com/third_party/excel/xlsxwriter/xlsxwriter_write/
+# https://translate.google.com/translate?hl=ja&sl=en&tl=ja&u=https%3A%2F%2Fxlsxwriter.readthedocs.io%2Fformat.html&anno=2&prev=search
+# result_listには行き先のリスト，分のリストが交互に入っている
+def output_excel2(result_list, types_list, excel_path, color_setting, hours, min_hour, direction, symbol_setting, trains_list):
+    wb = xlsxwriter.Workbook(excel_path)
+    ws = wb.add_worksheet('Sheet')
+
+    # 開始の時に合うように先頭に足す
+    lack = int(hours[0]) - int(min_hour)
+    # print('lack: ' + str(lack))
+    for i in range(lack):
+        result_list.insert(0, list())
+        result_list.insert(0, list())
+        types_list.insert(0, list())
+
+    # 最も長い行数を求める（多めに背景色が塗られていた方が使いやすそうなので30をデフォルトに変更）
+    max_x = 30
+    for results in result_list:
+        if max_x < len(results):
+            max_x = len(results)
+
+    # 最も長い行に合わせて空白を足す
+    results_list_added = []
+    for results in result_list:
+        lack = max_x - len(results)
+        results_added = results
+        for _ in range(lack):
+            results_added.append('')
+        results_list_added.append(results_added)
+
+    # 最も長い行に合わせて空白を足す
+    types_list_added = []
+    for types in types_list:
+        lack = max_x - len(types)
+        types_added = types
+        for _ in range(lack):
+            types_added.append('')
+        types_list_added.append(types_added)
+
+    # 背景色
+    odd_fill = PatternFill(patternType='solid', fgColor='ffffff')
+    even_fill = PatternFill(patternType='solid', fgColor='f2f2f2')
+
+    def create_color_dict():
+        with open(color_setting, 'r', errors='replace', encoding="utf_8") as file:
+            line_list = file.readlines()
+
+            _d = dict()
+            for line in line_list:
+                l_dir = line.split(',')[2].replace('\n', '')
+                # print(l_dir + '_' + direction)
+                if l_dir == direction or l_dir == '':
+                    k = line.split(',')[0]
+                    v = line.split(',')[1]
+                    _d[k] = v
+            # d = dict(filter(None, csv.reader(file)))
+            return _d
+
+    d = create_color_dict()
+
+    def replace_symbol():
+        with open(symbol_setting, 'r', errors='replace', encoding="utf_8") as file:
+            line_list = file.readlines()
+
+            for line in line_list:
+                attr_name = line.split(',')[0]
+                attr_value = line.split(',')[2]
+                symbol =  line.split(',')[3]
+                symbol_color = line.split(',')[4].replace('\n', '')
+
+            # return _d
+
+    def set_dest_font(_y):
+        # 白い行
+        if _y % 4 == 0 or _y % 4 == 1:
+            bg_color = 'ffffff'
+        # 灰色の行
+        else:
+            bg_color = 'f2f2f2'
+
+        dest_font = wb.add_format()
+        dest_font.set_font('メイリオ')
+        dest_font.set_size(8)
+        dest_font.set_font_color('000000')
+        dest_font.set_align('center')
+        dest_font.set_align('top')
+        dest_font.set_top(1)
+        dest_font.set_bg_color(bg_color)
+
+        return dest_font
+
+    def set_time_font(_y, _x):
+        _y2 = _y // 2
+        train_type = types_list[_y2][_x]
+        type_color = d[train_type]
+
+        # 白い行
+        if _y % 4 == 0 or _y % 4 == 1:
+            bg_color = 'ffffff'
+        # 灰色の行
+        else:
+            bg_color = 'f2f2f2'
+
+        time_font = wb.add_format()
+        time_font.set_font('メイリオ')
+        time_font.set_size(11)
+        time_font.set_font_color(type_color)
+        time_font.set_align('center')
+        time_font.set_align('vcenter')
+        time_font.set_bottom(1)
+        time_font.set_bg_color(bg_color)
+
+        return time_font
+
+    def write_list_2d(sheet, list_2d, start_row, start_col):
+        for y, row in enumerate(list_2d):
+            for x, cell in enumerate(row):
+                row = start_row + y
+                col = start_col + x
+
+                # TODO
+                # 行き先行のフォント設定
+                if y % 2 == 0:
+                    sheet.write(row, col, list_2d[y][x], set_dest_font(y))
+                # 時刻行のフォント設定
+                else:
+                    sheet.write(row, col, list_2d[y][x], set_time_font(y, x))
+
+    write_list_2d(ws, results_list_added, 2, 3)
+
+    # # セル幅の調整
+    # # mod https://gist.github.com/bisco/a65e71c8ba45337f91174e6ae3c139f9
+    # def adjust_col(_ws):
+    #     for col in _ws.columns:
+    #         max_length = 0
+    #         column = col[0].column  # Get the column name
+    #         column = get_column_letter(column)
+    #         for cell in col:
+    #             try:  # Necessary to avoid error on empty cells
+    #                 if len(str(cell.value)) > max_length:
+    #                     max_length = len(cell.value)
+    #             except:
+    #                 pass
+    #         adjusted_width = (max_length + 2) * 1.1
+    #         _ws.column_dimensions[column].width = adjusted_width
+    #
+    # adjust_col(ws)
+
+    wb.close()
+
+
 # 結果をExcelに出力する
 # https://qiita.com/orengepy/items/d10ad53fee5593b29e46
 # result_listには行き先のリスト，分のリストが交互に入っている
-def output_excel(result_list, types_list, excel_path, color_setting, hours, min_hour, direction):
+def output_excel(result_list, types_list, excel_path, color_setting, hours, min_hour, direction, symbol_setting, trains_list):
     wb = Workbook()
     ws = wb.active
 
@@ -119,6 +273,19 @@ def output_excel(result_list, types_list, excel_path, color_setting, hours, min_
         type_color = d[train_type]
         return Font(name=min_font.name, size=min_font.size, color=type_color)
 
+    def replace_symbol():
+        with open(symbol_setting, 'r', errors='replace', encoding="utf_8") as file:
+            line_list = file.readlines()
+
+            # ここじゃなくて最後のファイル書き込みのところかも
+            for line in line_list:
+                attr_name = line.split(',')[0]
+                attr_value = line.split(',')[2]
+                symbol =  line.split(',')[3]
+                symbol_color = line.split(',')[4].replace('\n', '')
+
+            # return _d
+
     def write_list_2d(sheet, list_2d, start_row, start_col):
         for y, row in enumerate(list_2d):
             for x, cell in enumerate(row):
@@ -167,7 +334,7 @@ def output_excel(result_list, types_list, excel_path, color_setting, hours, min_
     wb.close()
 
 
-def create_time_table(table_soup, excel_path, dest_setting, color_setting, min_hour, direction):
+def create_time_table(table_soup, excel_path, dest_setting, color_setting, symbol_setting, min_hour, direction):
     # 行き先を省略して1文字にする
     def replace_dests(_dests):
         with open(dest_setting, 'r', errors='replace', encoding="utf_8") as file:
@@ -205,6 +372,8 @@ def create_time_table(table_soup, excel_path, dest_setting, color_setting, min_h
     dests_list = []
     # 分のリスト
     mins_list = []
+    # 後で記号を追加するように変数で持っていく
+    trains_list = []
     # tdのlistから奇数番目を取り出して処理する
     for trains in tds[1::2]:
         types = list(map(lambda x: x['data-tr-type'], trains.select('li.ek-tooltip')))
@@ -222,6 +391,8 @@ def create_time_table(table_soup, excel_path, dest_setting, color_setting, min_h
         mins = list(map(lambda x: x.text, trains.select('span.time-min')))
         mins_list.append(mins)
 
+        trains_list.append(trains)
+
     # print(dests_list)
     # print(types_list)
     # print(mins_list)
@@ -233,10 +404,10 @@ def create_time_table(table_soup, excel_path, dest_setting, color_setting, min_h
         result_list.append(dests)
         result_list.append(mins)
 
-    output_excel(result_list, types_list, excel_path, color_setting, hours, min_hour, direction)
+    output_excel2(result_list, types_list, excel_path, color_setting, hours, min_hour, direction, symbol_setting, trains_list)
 
 
-def prepare_soup(url, html_dir, excel_dir, name, dw, dest_setting, color_setting, min_hour):
+def prepare_soup(url, html_dir, excel_dir, name, dw, dest_setting, color_setting, symbol_setting, min_hour):
     today = date.today()
     today_string = today.strftime('%Y%m%d')
 
@@ -286,11 +457,11 @@ def prepare_soup(url, html_dir, excel_dir, name, dw, dest_setting, color_setting
 
     # 上り
     if not os.path.exists(excel_path_up):
-        create_time_table(tables[0], excel_path_up, dest_setting, color_setting, min_hour, 'up')
+        create_time_table(tables[0], excel_path_up, dest_setting, color_setting, symbol_setting, min_hour, 'up')
 
     # 下り
     if not os.path.exists(excel_path_down):
-        create_time_table(tables[1], excel_path_down, dest_setting, color_setting, min_hour, 'down')
+        create_time_table(tables[1], excel_path_down, dest_setting, color_setting, symbol_setting, min_hour, 'down')
 
 
 def main_function(file_name, html_dir, excel_dir, setting_dir):
@@ -305,17 +476,18 @@ def main_function(file_name, html_dir, excel_dir, setting_dir):
         file_name = line.split(',')[1]
         dest_setting = os.path.join(setting_dir, line.split(',')[2])
         color_setting = os.path.join(setting_dir, line.split(',')[3])
+        symbol_setting = os.path.join(setting_dir, line.split(',')[4])
         # 何時から始めるか（上りと下りで開始時刻が違う場合など）
-        min_hour = line.split(',')[4].replace('\n', '')
+        min_hour = line.split(',')[5].replace('\n', '')
         print(line_count, '/', len(line_list))
         print('input_url: ' + input_url)
 
         # 平日分
         input_url1 = input_url + '?dw=0'
-        prepare_soup(input_url1, html_dir, excel_dir, file_name, 'weekday', dest_setting, color_setting, min_hour)
+        prepare_soup(input_url1, html_dir, excel_dir, file_name, 'weekday', dest_setting, color_setting, symbol_setting, min_hour)
         # 休日分
         input_url2 = input_url + '?dw=2'
-        prepare_soup(input_url2, html_dir, excel_dir, file_name, 'holiday', dest_setting, color_setting, min_hour)
+        prepare_soup(input_url2, html_dir, excel_dir, file_name, 'holiday', dest_setting, color_setting, symbol_setting, min_hour)
 
 
 if __name__ == '__main__':
