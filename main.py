@@ -8,12 +8,6 @@ import xlsxwriter
 
 import cloudscraper
 from bs4 import BeautifulSoup
-from openpyxl.utils import get_column_letter
-from openpyxl import Workbook
-from openpyxl.styles import Font
-from openpyxl.styles import PatternFill
-from openpyxl.styles.alignment import Alignment
-from openpyxl.styles.borders import Border, Side
 
 
 logger = logging.getLogger(__name__)
@@ -98,7 +92,6 @@ def output_excel2(result_list, types_list, excel_path, color_setting, hours, min
                     k = line.split(',')[0]
                     v = line.split(',')[1]
                     _d[k] = v
-            # d = dict(filter(None, csv.reader(file)))
             return _d
 
     d = create_color_dict()
@@ -165,7 +158,7 @@ def output_excel2(result_list, types_list, excel_path, color_setting, hours, min
             for line in line_list:
                 attr_name = line.split(',')[0]
                 attr_value = line.split(',')[1]
-                symbol =  line.split(',')[2]
+                symbol = line.split(',')[2]
                 symbol_color = line.split(',')[3].replace('\n', '')
 
                 trains = trains_list[_y]
@@ -187,25 +180,6 @@ def output_excel2(result_list, types_list, excel_path, color_setting, hours, min
             else:
                 # write_rich_stringの場合，segmentsに入っているセルのフォーマットは無視されるので，最後にセルのフォーマットだけ足す
                 return _sheet.write_rich_string(_row, _col, *segments, symbol_color_dict['black_' + bg_color])
-
-    # def set_dest_font(_y):
-    #     # 白い行
-    #     if _y % 4 == 0 or _y % 4 == 1:
-    #         bg_color = 'ffffff'
-    #     # 灰色の行
-    #     else:
-    #         bg_color = 'f2f2f2'
-    #
-    #     dest_font = wb.add_format()
-    #     dest_font.set_font('メイリオ')
-    #     dest_font.set_size(8)
-    #     dest_font.set_font_color('000000')
-    #     dest_font.set_align('center')
-    #     dest_font.set_align('top')
-    #     dest_font.set_top(1)
-    #     dest_font.set_bg_color(bg_color)
-    #
-    #     return dest_font
 
     def set_time_font(_y, _x):
         _y2 = _y // 2
@@ -256,130 +230,6 @@ def output_excel2(result_list, types_list, excel_path, color_setting, hours, min
     wb.close()
 
 
-# 結果をExcelに出力する
-# https://qiita.com/orengepy/items/d10ad53fee5593b29e46
-# result_listには行き先のリスト，分のリストが交互に入っている
-def output_excel(result_list, types_list, excel_path, color_setting, hours, min_hour,
-                 direction, symbol_setting, trains_list):
-    wb = Workbook()
-    ws = wb.active
-
-    # 開始の時に合うように先頭に足す
-    lack = int(hours[0]) - int(min_hour)
-    # print('lack: ' + str(lack))
-    for i in range(lack):
-        result_list.insert(0, list())
-        result_list.insert(0, list())
-        types_list.insert(0, list())
-
-    # 最も長い行数を求める（多めに背景色が塗られていた方が使いやすそうなので30をデフォルトに変更）
-    max_x = 30
-    for results in result_list:
-        if max_x < len(results):
-            max_x = len(results)
-
-    # 最も長い行に合わせて空白を足す
-    results_list_added = []
-    for results in result_list:
-        lack = max_x - len(results)
-        results_added = results
-        for _ in range(lack):
-            results_added.append('')
-        results_list_added.append(results_added)
-
-    # 最も長い行に合わせて空白を足す
-    types_list_added = []
-    for types in types_list:
-        lack = max_x - len(types)
-        types_added = types
-        for _ in range(lack):
-            types_added.append('')
-        types_list_added.append(types_added)
-
-    # フォント
-    dest_font = Font(name='メイリオ', size=8, color='000000')
-    min_font = Font(name='メイリオ', size=11, color='000000')
-    # 位置
-    dest_align = Alignment(horizontal='center', vertical='top')
-    min_align = Alignment(horizontal='center', vertical='center')
-    # 背景色
-    odd_fill = PatternFill(patternType='solid', fgColor='ffffff')
-    even_fill = PatternFill(patternType='solid', fgColor='f2f2f2')
-    # 罫線
-    side = Side(style='thin', color='000000')
-    dest_border = Border(top=side)
-    min_border = Border(bottom=side)
-
-    def create_color_dict():
-        with open(color_setting, 'r', errors='replace', encoding="utf_8") as file:
-            line_list = file.readlines()
-
-            _d = dict()
-            for line in line_list:
-                l_dir = line.split(',')[2].replace('\n', '')
-                # print(l_dir + '_' + direction)
-                if l_dir == direction or l_dir == '':
-                    k = line.split(',')[0]
-                    v = line.split(',')[1]
-                    _d[k] = v
-            # d = dict(filter(None, csv.reader(file)))
-            return _d
-
-    d = create_color_dict()
-
-    def set_color(_y, _x, _types_list):
-        train_type = _types_list[_y][_x]
-        type_color = d[train_type]
-        return Font(name=min_font.name, size=min_font.size, color=type_color)
-
-    def write_list_2d(sheet, list_2d, start_row, start_col):
-        for y, row in enumerate(list_2d):
-            for x, cell in enumerate(row):
-                row = start_row + y
-                col = start_col + x
-                sheet.cell(row=row, column=col, value=list_2d[y][x])
-
-                # 行き先行のフォント設定
-                if y % 2 == 0:
-                    sheet.cell(row=row, column=col).font = dest_font
-                    sheet.cell(row=row, column=col).alignment = dest_align
-                    sheet.cell(row=row, column=col).border = dest_border
-                # 時刻行のフォント設定
-                else:
-                    sheet.cell(row=row, column=col).font = set_color(y // 2, x, types_list_added)
-                    sheet.cell(row=row, column=col).alignment = min_align
-                    sheet.cell(row=row, column=col).border = min_border
-                # 白い行
-                if y % 4 == 0 or y % 4 == 1:
-                    sheet.cell(row=row, column=col).fill = odd_fill
-                # 灰色の行
-                else:
-                    sheet.cell(row=row, column=col).fill = even_fill
-
-    write_list_2d(ws, results_list_added, 2, 3)
-
-    # セル幅の調整
-    # mod https://gist.github.com/bisco/a65e71c8ba45337f91174e6ae3c139f9
-    def adjust_col(_ws):
-        for col in _ws.columns:
-            max_length = 0
-            column = col[0].column  # Get the column name
-            column = get_column_letter(column)
-            for cell in col:
-                try:  # Necessary to avoid error on empty cells
-                    if len(str(cell.value)) > max_length:
-                        max_length = len(cell.value)
-                except:
-                    pass
-            adjusted_width = (max_length + 2) * 1.1
-            _ws.column_dimensions[column].width = adjusted_width
-
-    adjust_col(ws)
-
-    wb.save(excel_path)
-    wb.close()
-
-
 def create_time_table(table_soup, excel_path, dest_setting, color_setting,
                       symbol_setting, min_hour, direction):
     # 行き先を省略して1文字にする
@@ -396,17 +246,6 @@ def create_time_table(table_soup, excel_path, dest_setting, color_setting,
                 _dests_replaced.append(_dest)
 
         return _dests_replaced
-
-    # 当駅始発の場合は●に置換する
-    def replace_starts(_starts):
-        starts_replaced = []
-        for _start in _starts:
-            if _start == '':
-                starts_replaced.append(_start)
-            else:
-                starts_replaced.append("●")
-
-        return starts_replaced
 
     tds = table_soup.select('tr.ek-hour_line td')
     # tdのlistから偶数番目を取り出して，それぞれのtextを取り出している
@@ -427,12 +266,9 @@ def create_time_table(table_soup, excel_path, dest_setting, color_setting,
         types_list.append(types)
 
         dests = list(map(lambda x: x['data-dest'], trains.select('li.ek-tooltip')))
-        starts = list(map(lambda x: x['data-start'], trains.select('li.ek-tooltip')))
 
         # 行き先を1文字に変換する処理
         dests_replaced = []
-        # for dest, start in zip(replace_dests(dests), replace_starts(starts)):
-        #     dests_replaced.append(start + dest)
         for dest in replace_dests(dests):
             dests_replaced.append(dest)
 
