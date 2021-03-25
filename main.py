@@ -103,36 +103,109 @@ def output_excel2(result_list, types_list, excel_path, color_setting, hours, min
 
     d = create_color_dict()
 
-    def replace_symbol():
+    symbol_color_dict = dict()
+
+    red_white = wb.add_format()
+    red_white.set_font('メイリオ')
+    red_white.set_size(8)
+    red_white.set_font_color('red')
+    red_white.set_align('center')
+    red_white.set_align('top')
+    red_white.set_top(1)
+    red_white.set_bg_color('ffffff')
+    symbol_color_dict['red_white'] = red_white
+
+    red_grey = wb.add_format()
+    red_grey.set_font('メイリオ')
+    red_grey.set_size(8)
+    red_grey.set_font_color('red')
+    red_grey.set_align('center')
+    red_grey.set_align('top')
+    red_grey.set_top(1)
+    red_grey.set_bg_color('f2f2f2')
+    symbol_color_dict['red_grey'] = red_grey
+
+    black_white = wb.add_format()
+    black_white.set_font('メイリオ')
+    black_white.set_size(8)
+    black_white.set_font_color('black')
+    black_white.set_align('center')
+    black_white.set_align('top')
+    black_white.set_top(1)
+    black_white.set_bg_color('ffffff')
+    symbol_color_dict['black_white'] = black_white
+
+    black_grey = wb.add_format()
+    black_grey.set_font('メイリオ')
+    black_grey.set_size(8)
+    black_grey.set_font_color('black')
+    black_grey.set_align('center')
+    black_grey.set_align('top')
+    black_grey.set_top(1)
+    black_grey.set_bg_color('f2f2f2')
+    symbol_color_dict['black_grey'] = black_grey
+
+    # 行き先の前方に記号を追加する
+    def replace_symbol(_sheet, _row, _col, _y, _x, dest):
         with open(symbol_setting, 'r', errors='replace', encoding="utf_8") as file:
             line_list = file.readlines()
+            # 白い行
+            if _y % 2 == 0:
+                bg_color = 'white'
+            # 灰色の行
+            else:
+                bg_color = 'grey'
+
+            # 行き先が空の場合，write_rich_stringでエラーになるので空にしておく
+            if dest == '':
+                segments = []
+            else:
+                segments = [symbol_color_dict['black_' + bg_color], dest]
 
             for line in line_list:
                 attr_name = line.split(',')[0]
-                attr_value = line.split(',')[2]
-                symbol =  line.split(',')[3]
-                symbol_color = line.split(',')[4].replace('\n', '')
+                attr_value = line.split(',')[1]
+                symbol =  line.split(',')[2]
+                symbol_color = line.split(',')[3].replace('\n', '')
 
-            # return _d
+                trains = trains_list[_y]
+                lists = list(map(lambda x: x[attr_name], trains.select('li.ek-tooltip')))
 
-    def set_dest_font(_y):
-        # 白い行
-        if _y % 4 == 0 or _y % 4 == 1:
-            bg_color = 'ffffff'
-        # 灰色の行
-        else:
-            bg_color = 'f2f2f2'
+                # パディングに使った空の部分は，空の状態でフォント設定だけ入れる
+                if _x >= len(lists):
+                    return _sheet.write(_row, _col, '', symbol_color_dict['black_' + bg_color])
+                if lists[_x] == attr_value:
+                    add_segments = [symbol_color_dict[symbol_color + '_' + bg_color], symbol]
+                    segments = add_segments + segments
 
-        dest_font = wb.add_format()
-        dest_font.set_font('メイリオ')
-        dest_font.set_size(8)
-        dest_font.set_font_color('000000')
-        dest_font.set_align('center')
-        dest_font.set_align('top')
-        dest_font.set_top(1)
-        dest_font.set_bg_color(bg_color)
+            if len(segments) == 0:
+                # [フォント設定, 行き先]の組がない場合，空の状態でフォント設定だけ入れる
+                return _sheet.write(_row, _col, '', symbol_color_dict['black_' + bg_color])
+            if len(segments) == 2:
+                # [フォント設定, 行き先]の組が1組しかない場合もwrite_rich_stringが使えないのでwriteにする
+                return _sheet.write(_row, _col, segments[1], segments[0])
+            else:
+                # write_rich_stringの場合，segmentsに入っているセルのフォーマットは無視されるので，最後にセルのフォーマットだけ足す
+                return _sheet.write_rich_string(_row, _col, *segments, symbol_color_dict['black_' + bg_color])
 
-        return dest_font
+    # def set_dest_font(_y):
+    #     # 白い行
+    #     if _y % 4 == 0 or _y % 4 == 1:
+    #         bg_color = 'ffffff'
+    #     # 灰色の行
+    #     else:
+    #         bg_color = 'f2f2f2'
+    #
+    #     dest_font = wb.add_format()
+    #     dest_font.set_font('メイリオ')
+    #     dest_font.set_size(8)
+    #     dest_font.set_font_color('000000')
+    #     dest_font.set_align('center')
+    #     dest_font.set_align('top')
+    #     dest_font.set_top(1)
+    #     dest_font.set_bg_color(bg_color)
+    #
+    #     return dest_font
 
     def set_time_font(_y, _x):
         _y2 = _y // 2
@@ -163,10 +236,15 @@ def output_excel2(result_list, types_list, excel_path, color_setting, hours, min
                 row = start_row + y
                 col = start_col + x
 
-                # TODO
-                # 行き先行のフォント設定
                 if y % 2 == 0:
-                    sheet.write(row, col, list_2d[y][x], set_dest_font(y))
+                    # segments = replace_symbol(sheet, row, col, y // 2, x, list_2d[y][x])
+                    # # segmentが追加されなかった場合
+                    # if len(segments) <= 2:
+                    #     sheet.write(row, col, list_2d[y][x], set_dest_font(y))
+                    # else:
+                    #     sheet.write_rich_string(row, col, *segments)
+
+                    replace_symbol(sheet, row, col, y // 2, x, list_2d[y][x])
                 # 時刻行のフォント設定
                 else:
                     sheet.write(row, col, list_2d[y][x], set_time_font(y, x))
@@ -351,9 +429,12 @@ def create_time_table(table_soup, excel_path, dest_setting, color_setting,
         dests = list(map(lambda x: x['data-dest'], trains.select('li.ek-tooltip')))
         starts = list(map(lambda x: x['data-start'], trains.select('li.ek-tooltip')))
 
+        # 行き先を1文字に変換する処理
         dests_replaced = []
-        for dest, start in zip(replace_dests(dests), replace_starts(starts)):
-            dests_replaced.append(start + dest)
+        # for dest, start in zip(replace_dests(dests), replace_starts(starts)):
+        #     dests_replaced.append(start + dest)
+        for dest in replace_dests(dests):
+            dests_replaced.append(dest)
 
         dests_list.append(dests_replaced)
 
