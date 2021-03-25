@@ -43,10 +43,10 @@ def open_cache(path):
 # https://www.python-izm.com/third_party/excel/xlsxwriter/xlsxwriter_write/
 # https://translate.google.com/translate?hl=ja&sl=en&tl=ja&u=https%3A%2F%2Fxlsxwriter.readthedocs.io%2Fformat.html&anno=2&prev=search
 # result_listには行き先のリスト，分のリストが交互に入っている
-def output_excel2(result_list, types_list, excel_path, color_setting, hours, min_hour,
-                  direction, symbol_setting, trains_list):
-    wb = xlsxwriter.Workbook(excel_path)
-    ws = wb.add_worksheet('Sheet')
+def output_excel(result_list, types_list, wb, color_setting, hours, min_hour,
+                 direction, dw, symbol_setting, trains_list):
+
+    ws = wb.add_worksheet(direction + '_' + dw)
 
     # 開始の時に合うように先頭に足す
     lack = int(hours[0]) - int(min_hour)
@@ -55,6 +55,7 @@ def output_excel2(result_list, types_list, excel_path, color_setting, hours, min
         result_list.insert(0, list())
         result_list.insert(0, list())
         types_list.insert(0, list())
+        trains_list.insert(0, list())
 
     # 最も長い行数を求める（多めに背景色が塗られていた方が使いやすそうなので30をデフォルトに変更）
     max_x = 30
@@ -162,6 +163,9 @@ def output_excel2(result_list, types_list, excel_path, color_setting, hours, min
                 symbol_color = line.split(',')[3].replace('\n', '')
 
                 trains = trains_list[_y]
+                # パディングに使った空の部分は，空の状態でフォント設定だけ入れる
+                if len(trains) == 0:
+                    return _sheet.write(_row, _col, '', symbol_color_dict['black_' + bg_color])
                 lists = list(map(lambda x: x[attr_name], trains.select('li.ek-tooltip')))
 
                 # パディングに使った空の部分は，空の状態でフォント設定だけ入れる
@@ -227,11 +231,9 @@ def output_excel2(result_list, types_list, excel_path, color_setting, hours, min
     # セル幅の調整
     ws.set_column('A:AG', 4)
 
-    wb.close()
 
-
-def create_time_table(table_soup, excel_path, dest_setting, color_setting,
-                      symbol_setting, min_hour, direction):
+def create_time_table(table_soup, wb, dest_setting, color_setting,
+                      symbol_setting, min_hour, direction, dw):
     # 行き先を省略して1文字にする
     def replace_dests(_dests):
         with open(dest_setting, 'r', errors='replace', encoding="utf_8") as file:
@@ -290,11 +292,11 @@ def create_time_table(table_soup, excel_path, dest_setting, color_setting,
         result_list.append(dests)
         result_list.append(mins)
 
-    output_excel2(result_list, types_list, excel_path, color_setting, hours, min_hour,
-                  direction, symbol_setting, trains_list)
+    output_excel(result_list, types_list, wb, color_setting, hours, min_hour,
+                 direction, dw, symbol_setting, trains_list)
 
 
-def prepare_soup(url, html_dir, excel_dir, name, dw, dest_setting, color_setting, symbol_setting, min_hour):
+def prepare_soup(url, html_dir, name, dw):
     today = date.today()
     today_string = today.strftime('%Y%m%d')
 
@@ -315,12 +317,10 @@ def prepare_soup(url, html_dir, excel_dir, name, dw, dest_setting, color_setting
     u_day = updated_date_tuple[2]
     updated_date = datetime(int(u_year), int(u_mon), int(u_day)).strftime('%Y%m%d')
     # print(updated_date)
+    return soup, updated_date
 
-    # TODO: 全部同じExcelにしてシートだけ分けたい
-    excel_name = updated_date + '_' + name + '_' + dw
-    excel_path_up = os.path.join(excel_dir, excel_name + '_up.xlsx')
-    excel_path_down = os.path.join(excel_dir, excel_name + '_down.xlsx')
 
+def get_each_table(wb, soup, dw, dest_setting, color_setting, symbol_setting, min_hour):
     # <tr class="ek-hour_line">
     #   <td>07</td>
     #   <td>
@@ -343,12 +343,11 @@ def prepare_soup(url, html_dir, excel_dir, name, dw, dest_setting, color_setting
     tables = soup.select('div.search-result-body')
 
     # 上り
-    if not os.path.exists(excel_path_up):
-        create_time_table(tables[0], excel_path_up, dest_setting, color_setting, symbol_setting, min_hour, 'up')
+    create_time_table(tables[0], wb, dest_setting, color_setting, symbol_setting, min_hour, 'up', dw)
 
-    # 下り
-    if not os.path.exists(excel_path_down) and len(tables) >= 2:
-        create_time_table(tables[1], excel_path_down, dest_setting, color_setting, symbol_setting, min_hour, 'down')
+    # 下り（終点などでは片方向しかないため）
+    if len(tables) >= 2:
+        create_time_table(tables[1], wb, dest_setting, color_setting, symbol_setting, min_hour, 'down', dw)
 
 
 def main_function(file_name, html_dir, excel_dir, setting_dir):
@@ -371,12 +370,20 @@ def main_function(file_name, html_dir, excel_dir, setting_dir):
 
         # 平日分
         input_url1 = input_url + '?dw=0'
-        prepare_soup(input_url1, html_dir, excel_dir, file_name, 'weekday', dest_setting,
-                     color_setting, symbol_setting, min_hour)
+        dw = 'weekday'
+        soup, updated_date = prepare_soup(input_url1, html_dir, file_name, dw)
+        excel_name = updated_date + '_' + file_name
+        excel_path = os.path.join(excel_dir, excel_name + '.xlsx')
+        wb = xlsxwriter.Workbook(excel_path)
+        get_each_table(wb, soup, dw, dest_setting, color_setting, symbol_setting, min_hour)
+
         # 休日分
         input_url2 = input_url + '?dw=2'
-        prepare_soup(input_url2, html_dir, excel_dir, file_name, 'holiday', dest_setting,
-                     color_setting, symbol_setting, min_hour)
+        dw = 'holiday'
+        soup, _ = prepare_soup(input_url2, html_dir, file_name, dw)
+        get_each_table(wb, soup, dw, dest_setting, color_setting, symbol_setting, min_hour)
+
+        wb.close()
 
 
 if __name__ == '__main__':
