@@ -374,16 +374,18 @@ def main_function(file_name, html_dir, excel_dir, setting_dir):
         soup, updated_date = prepare_soup(input_url1, html_dir, file_name, dw)
         excel_name = updated_date + '_' + file_name
         excel_path = os.path.join(excel_dir, excel_name + '.xlsx')
-        wb = xlsxwriter.Workbook(excel_path)
-        get_each_table(wb, soup, dw, dest_setting, color_setting, symbol_setting, min_hour)
 
-        # 休日分
-        input_url2 = input_url + '?dw=2'
-        dw = 'holiday'
-        soup, _ = prepare_soup(input_url2, html_dir, file_name, dw)
-        get_each_table(wb, soup, dw, dest_setting, color_setting, symbol_setting, min_hour)
+        if not os.path.exists(excel_path):
+            wb = xlsxwriter.Workbook(excel_path)
+            get_each_table(wb, soup, dw, dest_setting, color_setting, symbol_setting, min_hour)
 
-        wb.close()
+            # 休日分
+            input_url2 = input_url + '?dw=2'
+            dw = 'holiday'
+            soup, _ = prepare_soup(input_url2, html_dir, file_name, dw)
+            get_each_table(wb, soup, dw, dest_setting, color_setting, symbol_setting, min_hour)
+
+            wb.close()
 
 
 if __name__ == '__main__':
