@@ -172,24 +172,8 @@ def output_excel2(result_list, types_list, excel_path, color_setting, hours, min
                     sheet.write(row, col, list_2d[y][x], set_time_font(y, x))
 
     write_list_2d(ws, results_list_added, 2, 3)
-
-    # # セル幅の調整
-    # # mod https://gist.github.com/bisco/a65e71c8ba45337f91174e6ae3c139f9
-    # def adjust_col(_ws):
-    #     for col in _ws.columns:
-    #         max_length = 0
-    #         column = col[0].column  # Get the column name
-    #         column = get_column_letter(column)
-    #         for cell in col:
-    #             try:  # Necessary to avoid error on empty cells
-    #                 if len(str(cell.value)) > max_length:
-    #                     max_length = len(cell.value)
-    #             except:
-    #                 pass
-    #         adjusted_width = (max_length + 2) * 1.1
-    #         _ws.column_dimensions[column].width = adjusted_width
-    #
-    # adjust_col(ws)
+    # セル幅の調整
+    ws.set_column('A:AG', 4)
 
     wb.close()
 
