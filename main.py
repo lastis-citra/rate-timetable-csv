@@ -45,12 +45,12 @@ def open_cache(path):
     return soup
 
 
-
 # 結果をExcelに出力する
 # https://www.python-izm.com/third_party/excel/xlsxwriter/xlsxwriter_write/
 # https://translate.google.com/translate?hl=ja&sl=en&tl=ja&u=https%3A%2F%2Fxlsxwriter.readthedocs.io%2Fformat.html&anno=2&prev=search
 # result_listには行き先のリスト，分のリストが交互に入っている
-def output_excel2(result_list, types_list, excel_path, color_setting, hours, min_hour, direction, symbol_setting, trains_list):
+def output_excel2(result_list, types_list, excel_path, color_setting, hours, min_hour,
+                  direction, symbol_setting, trains_list):
     wb = xlsxwriter.Workbook(excel_path)
     ws = wb.add_worksheet('Sheet')
 
@@ -85,10 +85,6 @@ def output_excel2(result_list, types_list, excel_path, color_setting, hours, min
         for _ in range(lack):
             types_added.append('')
         types_list_added.append(types_added)
-
-    # 背景色
-    odd_fill = PatternFill(patternType='solid', fgColor='ffffff')
-    even_fill = PatternFill(patternType='solid', fgColor='f2f2f2')
 
     def create_color_dict():
         with open(color_setting, 'r', errors='replace', encoding="utf_8") as file:
@@ -201,7 +197,8 @@ def output_excel2(result_list, types_list, excel_path, color_setting, hours, min
 # 結果をExcelに出力する
 # https://qiita.com/orengepy/items/d10ad53fee5593b29e46
 # result_listには行き先のリスト，分のリストが交互に入っている
-def output_excel(result_list, types_list, excel_path, color_setting, hours, min_hour, direction, symbol_setting, trains_list):
+def output_excel(result_list, types_list, excel_path, color_setting, hours, min_hour,
+                 direction, symbol_setting, trains_list):
     wb = Workbook()
     ws = wb.active
 
@@ -273,19 +270,6 @@ def output_excel(result_list, types_list, excel_path, color_setting, hours, min_
         type_color = d[train_type]
         return Font(name=min_font.name, size=min_font.size, color=type_color)
 
-    def replace_symbol():
-        with open(symbol_setting, 'r', errors='replace', encoding="utf_8") as file:
-            line_list = file.readlines()
-
-            # ここじゃなくて最後のファイル書き込みのところかも
-            for line in line_list:
-                attr_name = line.split(',')[0]
-                attr_value = line.split(',')[2]
-                symbol =  line.split(',')[3]
-                symbol_color = line.split(',')[4].replace('\n', '')
-
-            # return _d
-
     def write_list_2d(sheet, list_2d, start_row, start_col):
         for y, row in enumerate(list_2d):
             for x, cell in enumerate(row):
@@ -334,7 +318,8 @@ def output_excel(result_list, types_list, excel_path, color_setting, hours, min_
     wb.close()
 
 
-def create_time_table(table_soup, excel_path, dest_setting, color_setting, symbol_setting, min_hour, direction):
+def create_time_table(table_soup, excel_path, dest_setting, color_setting,
+                      symbol_setting, min_hour, direction):
     # 行き先を省略して1文字にする
     def replace_dests(_dests):
         with open(dest_setting, 'r', errors='replace', encoding="utf_8") as file:
@@ -404,7 +389,8 @@ def create_time_table(table_soup, excel_path, dest_setting, color_setting, symbo
         result_list.append(dests)
         result_list.append(mins)
 
-    output_excel2(result_list, types_list, excel_path, color_setting, hours, min_hour, direction, symbol_setting, trains_list)
+    output_excel2(result_list, types_list, excel_path, color_setting, hours, min_hour,
+                  direction, symbol_setting, trains_list)
 
 
 def prepare_soup(url, html_dir, excel_dir, name, dw, dest_setting, color_setting, symbol_setting, min_hour):
@@ -484,10 +470,12 @@ def main_function(file_name, html_dir, excel_dir, setting_dir):
 
         # 平日分
         input_url1 = input_url + '?dw=0'
-        prepare_soup(input_url1, html_dir, excel_dir, file_name, 'weekday', dest_setting, color_setting, symbol_setting, min_hour)
+        prepare_soup(input_url1, html_dir, excel_dir, file_name, 'weekday', dest_setting,
+                     color_setting, symbol_setting, min_hour)
         # 休日分
         input_url2 = input_url + '?dw=2'
-        prepare_soup(input_url2, html_dir, excel_dir, file_name, 'holiday', dest_setting, color_setting, symbol_setting, min_hour)
+        prepare_soup(input_url2, html_dir, excel_dir, file_name, 'holiday', dest_setting,
+                     color_setting, symbol_setting, min_hour)
 
 
 if __name__ == '__main__':
