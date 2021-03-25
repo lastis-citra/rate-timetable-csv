@@ -347,7 +347,7 @@ def prepare_soup(url, html_dir, excel_dir, name, dw, dest_setting, color_setting
         create_time_table(tables[0], excel_path_up, dest_setting, color_setting, symbol_setting, min_hour, 'up')
 
     # 下り
-    if not os.path.exists(excel_path_down):
+    if not os.path.exists(excel_path_down) and len(tables) >= 2:
         create_time_table(tables[1], excel_path_down, dest_setting, color_setting, symbol_setting, min_hour, 'down')
 
 
