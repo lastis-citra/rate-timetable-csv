@@ -1,0 +1,1 @@
+data-tr-type,各駅停車:二子新地、高津停車,★,black
