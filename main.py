@@ -81,21 +81,23 @@ def output_excel(result_list, types_list, wb, color_setting, hours, min_hour,
             types_added.append('')
         types_list_added.append(types_added)
 
+    time_color_dict = dict()
+    time_bg_color_dict = dict()
     def create_color_dict():
         with open(color_setting, 'r', errors='replace', encoding="utf_8") as file:
             line_list = file.readlines()
 
-            _d = dict()
             for line in line_list:
-                l_dir = line.split(',')[2].replace('\n', '')
+                l_dir = line.split(',')[3].replace('\n', '')
                 # print(l_dir + '_' + direction)
                 if l_dir == direction or l_dir == '':
                     k = line.split(',')[0]
-                    v = line.split(',')[1]
-                    _d[k] = v
-            return _d
+                    v1 = line.split(',')[1]
+                    v2 = line.split(',')[2]
+                    time_color_dict[k] = v1
+                    time_bg_color_dict[k] = v2
 
-    d = create_color_dict()
+    create_color_dict()
 
     symbol_color_dict = dict()
 
@@ -188,10 +190,14 @@ def output_excel(result_list, types_list, wb, color_setting, hours, min_hour,
     def set_time_font(_y, _x):
         _y2 = _y // 2
         train_type = types_list[_y2][_x]
-        type_color = d[train_type]
+        type_color = time_color_dict[train_type]
+        type_bg_color = time_bg_color_dict[train_type]
 
+        # 背景色がある種別の場合はそちらを優先する
+        if type_bg_color != '':
+            bg_color = type_bg_color
         # 白い行
-        if _y % 4 == 0 or _y % 4 == 1:
+        elif _y % 4 == 0 or _y % 4 == 1:
             bg_color = 'ffffff'
         # 灰色の行
         else:
@@ -215,16 +221,10 @@ def output_excel(result_list, types_list, wb, color_setting, hours, min_hour,
                 col = start_col + x
 
                 if y % 2 == 0:
-                    # segments = replace_symbol(sheet, row, col, y // 2, x, list_2d[y][x])
-                    # # segmentが追加されなかった場合
-                    # if len(segments) <= 2:
-                    #     sheet.write(row, col, list_2d[y][x], set_dest_font(y))
-                    # else:
-                    #     sheet.write_rich_string(row, col, *segments)
-
+                    # 行き先行のフォント設定
                     replace_symbol(sheet, row, col, y // 2, x, list_2d[y][x])
-                # 時刻行のフォント設定
                 else:
+                    # 時刻行のフォント設定
                     sheet.write(row, col, list_2d[y][x], set_time_font(y, x))
 
     write_list_2d(ws, results_list_added, 2, 3)
