@@ -43,6 +43,7 @@ def open_cache(path):
 # https://www.python-izm.com/third_party/excel/xlsxwriter/xlsxwriter_write/
 # https://translate.google.com/translate?hl=ja&sl=en&tl=ja&u=https%3A%2F%2Fxlsxwriter.readthedocs.io%2Fformat.html&anno=2&prev=search
 # result_listには行き先のリスト，分のリストが交互に入っている
+# TODO: 停車駅が微妙に違うパターンの記号や種別色分けもやりたい
 def output_excel(result_list, types_list, wb, color_setting, hours, min_hour,
                  direction, dw, symbol_setting, trains_list):
 
