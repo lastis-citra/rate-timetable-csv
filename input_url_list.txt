@@ -3,3 +3,5 @@ https://ekitan.com/timetable/railway/line-station/94-17/d1,JR南武線_稲城長
 https://ekitan.com/timetable/railway/line-station/79-26/d1,JR京浜東北線_大井町,dest_jr_keihin_tohoku.txt,type_color_keihin_tohoku.txt,add_symbol_setting.txt,4
 https://ekitan.com/timetable/railway/line-station/218-0/d1,東急大井町線_大井町,dest_tokyu_ooimachi.txt,type_color_tokyu_ooimachi.txt,add_symbol_tokyu_ooimachi.txt,4
 https://ekitan.com/timetable/railway/line-station/213-6/d1,りんかい線_大井町,dest_jr_yokosuka.txt,type_color_yokosuka.txt,add_symbol_setting.txt,5
+https://ekitan.com/timetable/railway/line-station/335-11/d1,阪神本線_武庫川,dest_hanshin.txt,type_color_hanshin.txt,add_symbol_hanshin.txt,4
+https://ekitan.com/timetable/railway/line-station/335-0/d1,阪神本線_大阪梅田,dest_hanshin.txt,type_color_hanshin.txt,add_symbol_hanshin.txt,4
