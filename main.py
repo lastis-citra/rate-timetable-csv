@@ -65,14 +65,14 @@ def output_excel(dests_list, mins_list, types_list, wb, color_setting, hours, mi
             max_x = len(results)
 
     # 最も長い行に合わせて空白を足す
-    def add_space(l):
+    def add_space(line):
         l_added = []
-        for results in l:
-            lack = max_x - len(results)
-            results_added = results
-            for _ in range(lack):
-                results_added.append('')
-            l_added.append(results_added)
+        for res in line:
+            _lack = max_x - len(res)
+            res_added = res
+            for _ in range(_lack):
+                res_added.append('')
+            l_added.append(res_added)
         return l_added
 
     dests_list_added = add_space(dests_list)
@@ -358,7 +358,8 @@ def get_each_table(soup, reverse_flag):
     return table_up, table_down
 
 
-def join_lists(dests_list, mins_list, types_list, trains_list, hours, _dests_list, _mins_list, _types_list, _trains_list, _hours, min_hour):
+def join_lists(dests_list, mins_list, types_list, trains_list, hours,
+               _dests_list, _mins_list, _types_list, _trains_list, _hours, min_hour):
     # result_listは2列ずつ入っているので注意
     joined_dests_list = []
     joined_mins_list = []
@@ -386,7 +387,7 @@ def join_lists(dests_list, mins_list, types_list, trains_list, hours, _dests_lis
             mins1 = mins_list[index]
             mins2 = _mins_list[_index]
             types1 = types_list[index]
-            types2 =  _types_list[_index]
+            types2 = _types_list[_index]
             lis1 = trains_list[index].select('li')
             lis2 = _trains_list[_index].select('li')
             joined_dests = []
@@ -462,8 +463,6 @@ def join_lists(dests_list, mins_list, types_list, trains_list, hours, _dests_lis
     return joined_dests_list, joined_mins_list, joined_types_list, joined_trains_list, joined_hours
 
 
-
-
 def main_function(file_name, html_dir, excel_dir, setting_dir):
     with open(file_name, 'r', errors='replace', encoding="utf_8") as file:
         line_list = file.readlines()
@@ -479,11 +478,11 @@ def main_function(file_name, html_dir, excel_dir, setting_dir):
 
         for table in tables:
             _dests_list, _mins_list, _types_list, _trains_list, _hours = create_time_table(table, dest_setting)
-            dests_list, mins_list, types_list, trains_list, hours = join_lists(dests_list, mins_list, types_list, trains_list, hours,
-                                                                               _dests_list, _mins_list, _types_list, _trains_list, _hours, min_hour)
-        output_excel(dests_list, mins_list, types_list, wb, color_setting, hours, min_hour, direction, dw, symbol_setting, trains_list)
-
-
+            dests_list, mins_list, types_list, trains_list, hours = \
+                join_lists(dests_list, mins_list, types_list, trains_list, hours,
+                           _dests_list, _mins_list, _types_list, _trains_list, _hours, min_hour)
+        output_excel(dests_list, mins_list, types_list, wb, color_setting, hours, min_hour,
+                     direction, dw, symbol_setting, trains_list)
 
     for line in line_list:
         line_count += 1
