@@ -1,6 +1,7 @@
 data-dest,海老名,●,black
 data-dest,大和,●,black
 data-dest,新宿,●,black
+data-dest,池袋,●,black
 data-dest,赤羽,●,black
 data-dest,武蔵浦和,●,black
 data-dest,大宮,●,black
