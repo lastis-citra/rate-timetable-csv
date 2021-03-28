@@ -22,7 +22,7 @@ def download_html(url, file_path):
             'desktop': True
         }
     )
-    res = scraper.get(url)
+    res = scraper.get('https://ekitan.com/timetable/railway/line-station/' + url)
     # print(html)
 
     # TODO: 保存されるHTMLがSJISになっている
@@ -44,7 +44,7 @@ def open_cache(path):
 # https://translate.google.com/translate?hl=ja&sl=en&tl=ja&u=https%3A%2F%2Fxlsxwriter.readthedocs.io%2Fformat.html&anno=2&prev=search
 # result_listには行き先のリスト，分のリストが交互に入っている
 # TODO: 停車駅が微妙に違うパターンの記号や種別色分けもやりたい
-def output_excel(result_list, types_list, wb, color_setting, hours, min_hour,
+def output_excel(dests_list, mins_list, types_list, wb, color_setting, hours, min_hour,
                  direction, dw, symbol_setting, trains_list):
 
     ws = wb.add_worksheet(direction + '_' + dw)
@@ -53,37 +53,35 @@ def output_excel(result_list, types_list, wb, color_setting, hours, min_hour,
     lack = int(hours[0]) - int(min_hour)
     # print('lack: ' + str(lack))
     for i in range(lack):
-        result_list.insert(0, list())
-        result_list.insert(0, list())
+        dests_list.insert(0, list())
+        mins_list.insert(0, list())
         types_list.insert(0, list())
         trains_list.insert(0, list())
 
     # 最も長い行数を求める（多めに背景色が塗られていた方が使いやすそうなので30をデフォルトに変更）
     max_x = 30
-    for results in result_list:
+    for results in mins_list:
         if max_x < len(results):
             max_x = len(results)
 
     # 最も長い行に合わせて空白を足す
-    results_list_added = []
-    for results in result_list:
-        lack = max_x - len(results)
-        results_added = results
-        for _ in range(lack):
-            results_added.append('')
-        results_list_added.append(results_added)
+    def add_space(l):
+        l_added = []
+        for results in l:
+            lack = max_x - len(results)
+            results_added = results
+            for _ in range(lack):
+                results_added.append('')
+            l_added.append(results_added)
+        return l_added
 
-    # 最も長い行に合わせて空白を足す
-    types_list_added = []
-    for types in types_list:
-        lack = max_x - len(types)
-        types_added = types
-        for _ in range(lack):
-            types_added.append('')
-        types_list_added.append(types_added)
+    dests_list_added = add_space(dests_list)
+    mins_list_added = add_space(mins_list)
+    types_list_added = add_space(types_list)
 
     time_color_dict = dict()
     time_bg_color_dict = dict()
+
     def create_color_dict():
         with open(color_setting, 'r', errors='replace', encoding="utf_8") as file:
             line_list = file.readlines()
@@ -190,7 +188,7 @@ def output_excel(result_list, types_list, wb, color_setting, hours, min_hour,
 
     def set_time_font(_y, _x):
         _y2 = _y // 2
-        train_type = types_list[_y2][_x]
+        train_type = types_list_added[_y2][_x]
         type_color = time_color_dict[train_type]
         type_bg_color = time_bg_color_dict[train_type]
 
@@ -228,13 +226,18 @@ def output_excel(result_list, types_list, wb, color_setting, hours, min_hour,
                     # 時刻行のフォント設定
                     sheet.write(row, col, list_2d[y][x], set_time_font(y, x))
 
+    results_list_added = []
+    for dests, mins in zip(dests_list_added, mins_list_added):
+        results_list_added.append(dests)
+        results_list_added.append(mins)
+    # print(results_list_added)
+
     write_list_2d(ws, results_list_added, 2, 3)
     # セル幅の調整
     ws.set_column('A:AG', 4)
 
 
-def create_time_table(table_soup, wb, dest_setting, color_setting,
-                      symbol_setting, min_hour, direction, dw):
+def create_time_table(table_soup, dest_setting):
     # 行き先を省略して1文字にする
     def replace_dests(_dests):
         with open(dest_setting, 'r', errors='replace', encoding="utf_8") as file:
@@ -286,22 +289,21 @@ def create_time_table(table_soup, wb, dest_setting, color_setting,
     # print(types_list)
     # print(mins_list)
 
-    result_list = []
-    for dests, mins in zip(dests_list, mins_list):
-        print(','.join(dests))
-        print(','.join(mins))
-        result_list.append(dests)
-        result_list.append(mins)
+    # result_list = []
+    # for dests, mins in zip(dests_list, mins_list):
+    #     print(','.join(dests))
+    #     print(','.join(mins))
+    #     result_list.append(dests)
+    #     result_list.append(mins)
 
-    output_excel(result_list, types_list, wb, color_setting, hours, min_hour,
-                 direction, dw, symbol_setting, trains_list)
+    return dests_list, mins_list, types_list, trains_list, hours
 
 
 def prepare_soup(url, html_dir, name, dw):
     today = date.today()
     today_string = today.strftime('%Y%m%d')
 
-    html_name = today_string + '_' + name + '_' + dw + '.html'
+    html_name = today_string + '_' + name + '_' + url.split('/')[0] + '_' + dw + '.html'
     html_path = os.path.join(html_dir, html_name)
 
     # 当日のキャッシュがある場合はキャッシュを利用し，なければダウンロードする
@@ -321,7 +323,7 @@ def prepare_soup(url, html_dir, name, dw):
     return soup, updated_date
 
 
-def get_each_table(wb, soup, dw, dest_setting, color_setting, symbol_setting, min_hour):
+def get_each_table(soup, reverse_flag):
     # <tr class="ek-hour_line">
     #   <td>07</td>
     #   <td>
@@ -342,13 +344,82 @@ def get_each_table(wb, soup, dw, dest_setting, color_setting, symbol_setting, mi
     #   </td>
     # </tr>
     tables = soup.select('div.search-result-body')
+    # reverse_flagがTrueの場合は上下のテーブルを逆にする
+    if len(tables) >= 2 and reverse_flag:
+        table_up = tables[1]
+        table_down = tables[0]
+    elif len(tables) >= 2:
+        table_up = tables[0]
+        table_down = tables[1]
+    else:
+        table_up = tables[0]
+        table_down = None
 
-    # 上り
-    create_time_table(tables[0], wb, dest_setting, color_setting, symbol_setting, min_hour, 'up', dw)
+    return table_up, table_down
 
-    # 下り（終点などでは片方向しかないため）
-    if len(tables) >= 2:
-        create_time_table(tables[1], wb, dest_setting, color_setting, symbol_setting, min_hour, 'down', dw)
+
+def join_lists(dests_list, mins_list, types_list, trains_list, hours, _dests_list, _mins_list, _types_list, _trains_list, _hours, min_hour):
+    # result_listは2列ずつ入っているので注意
+    joined_dests_list = []
+    joined_mins_list = []
+    joined_types_list = []
+    joined_trains_list = []
+    joined_hours = []
+    hours_int = list(map(lambda x: int(x), hours))
+    _hours_int = list(map(lambda x: int(x), _hours))
+
+    if len(hours) == 0:
+        print(mins_list)
+        return _dests_list, _mins_list, _types_list, _trains_list, _hours
+
+    for i in range(int(min_hour), 25):
+        i_mod = i
+        if i >= 24:
+            i_mod = i - 24
+
+        if i_mod in hours_int and i_mod in _hours_int:
+            index = hours_int.index(i_mod)
+            _index = _hours_int.index(i_mod)
+            joined_dests_list.append(dests_list[index] + _dests_list[_index])
+            joined_mins_list.append(mins_list[index] + _mins_list[_index])
+            joined_types_list.append(types_list[index] + _types_list[_index])
+            lis = trains_list[index].select('li')
+            _lis = _trains_list[_index].select('li')
+            text = '<td><ul>'
+            for li in lis:
+                text += li.prettify()
+            for li in _lis:
+                text += li.prettify()
+            text += '</td></ul>'
+            joined_trains_list.append(BeautifulSoup(text, 'html.parser'))
+            joined_hours.append(hours[index])
+            print()
+        elif i_mod in hours_int:
+            index = hours_int.index(i_mod)
+            joined_dests_list.append(dests_list[index])
+            joined_mins_list.append(mins_list[index])
+            joined_types_list.append(types_list[index])
+            joined_trains_list.append(trains_list[index])
+            joined_hours.append(hours[index])
+        elif i_mod in _hours_int:
+            index = _hours_int.index(i_mod)
+            joined_dests_list.append(_dests_list[index])
+            joined_mins_list.append(_mins_list[index])
+            joined_types_list.append(_types_list[index])
+            joined_trains_list.append(_trains_list[index])
+            joined_hours.append(_hours[index])
+        else:
+            joined_dests_list.append(list())
+            joined_mins_list.append(list())
+            joined_types_list.append(list())
+            joined_trains_list.append('')
+            joined_hours.append(str(i))
+    print(joined_dests_list)
+    print(joined_mins_list)
+
+    return joined_dests_list, joined_mins_list, joined_types_list, joined_trains_list, joined_hours
+
+
 
 
 def main_function(file_name, html_dir, excel_dir, setting_dir):
@@ -357,34 +428,72 @@ def main_function(file_name, html_dir, excel_dir, setting_dir):
 
     line_count = 0
 
+    def prepare_join_lists(tables, direction, dw):
+        dests_list = []
+        mins_list = []
+        types_list = []
+        trains_list = []
+        hours = []
+
+        for table in tables:
+            _dests_list, _mins_list, _types_list, _trains_list, _hours = create_time_table(table, dest_setting)
+            dests_list, mins_list, types_list, trains_list, hours = join_lists(dests_list, mins_list, types_list, trains_list, hours,
+                                                                               _dests_list, _mins_list, _types_list, _trains_list, _hours, min_hour)
+        output_excel(dests_list, mins_list, types_list, wb, color_setting, hours, min_hour, direction, dw, symbol_setting, trains_list)
+
+
+
     for line in line_list:
         line_count += 1
-        input_url = line.split(',')[0]
+        url_string = line.split(',')[0]
         file_name = line.split(',')[1]
         dest_setting = os.path.join(setting_dir, line.split(',')[2])
         color_setting = os.path.join(setting_dir, line.split(',')[3])
         symbol_setting = os.path.join(setting_dir, line.split(',')[4])
         # 何時から始めるか（上りと下りで開始時刻が違う場合など）
         min_hour = line.split(',')[5].replace('\n', '')
+
         print(line_count, '/', len(line_list))
-        print('input_url: ' + input_url)
+        print('input_url: ' + url_string)
 
-        # 平日分
-        input_url1 = input_url + '?dw=0'
-        dw = 'weekday'
-        soup, updated_date = prepare_soup(input_url1, html_dir, file_name, dw)
-        excel_name = updated_date + '_' + file_name
-        excel_path = os.path.join(excel_dir, excel_name + '.xlsx')
+        # urlが+で繋がっている場合は，soupをいい感じに結合する
+        input_urls = url_string.split('+')
+        table_weekday_ups = []
+        table_weekday_downs = []
+        table_holiday_ups = []
+        table_holiday_downs = []
 
+        # すでに実行済みかどうかを確認するために，一旦soupを取得してpathを調べる
+        # pathに更新日時が入っているので，soupを取得しないとpathがわからない
+        _, updated_date = prepare_soup(input_urls[0] + '?dw=0', html_dir, file_name, 'weekday')
+        excel_path = os.path.join(excel_dir, updated_date + '_' + file_name + '.xlsx')
+
+        # すでに実行済みのものは除外する
         if not os.path.exists(excel_path):
-            wb = xlsxwriter.Workbook(excel_path)
-            get_each_table(wb, soup, dw, dest_setting, color_setting, symbol_setting, min_hour)
+            for input_url in input_urls:
+                # urlが/d2になっている場合は上下を逆にする
+                reverse_flag = False
+                if '/d2' in input_url:
+                    reverse_flag = True
 
-            # 休日分
-            input_url2 = input_url + '?dw=2'
-            dw = 'holiday'
-            soup, _ = prepare_soup(input_url2, html_dir, file_name, dw)
-            get_each_table(wb, soup, dw, dest_setting, color_setting, symbol_setting, min_hour)
+                # 平日分
+                soup, updated_date = prepare_soup(input_url + '?dw=0', html_dir, file_name, 'weekday')
+                table_up, table_down = get_each_table(soup, reverse_flag)
+                table_weekday_ups.append(table_up)
+                table_weekday_downs.append(table_down)
+
+                # 休日分
+                soup, _ = prepare_soup(input_url + '?dw=2', html_dir, file_name, 'holiday')
+                table_up, table_down = get_each_table(soup, reverse_flag)
+                table_holiday_ups.append(table_up)
+                table_holiday_downs.append(table_down)
+
+            wb = xlsxwriter.Workbook(excel_path)
+
+            prepare_join_lists(table_weekday_ups, 'up', 'weekday')
+            prepare_join_lists(table_weekday_downs, 'down', 'weekday')
+            prepare_join_lists(table_holiday_ups, 'up', 'holiday')
+            prepare_join_lists(table_holiday_downs, 'down', 'holiday')
 
             wb.close()
 
