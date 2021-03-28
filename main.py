@@ -396,16 +396,28 @@ def join_lists(dests_list, mins_list, types_list, trains_list, hours, _dests_lis
             while len(mins1) > 0 or len(mins2) > 0:
                 if len(mins1) > 0 and len(mins2) > 0:
                     # 時刻が小さいものから取り出す
-                    if int(mins1[0]) <= int(mins2[0]):
+                    if int(mins1[0]) < int(mins2[0]):
                         joined_dests.append(dests1.pop(0))
                         joined_mins.append(mins1.pop(0))
                         joined_types.append(types1.pop(0))
                         soup_text += lis1.pop(0).prettify()
-                    else:
+                    elif int(mins1[0]) > int(mins2[0]):
                         joined_dests.append(dests2.pop(0))
                         joined_mins.append(mins2.pop(0))
                         joined_types.append(types2.pop(0))
                         soup_text += lis2.pop(0).prettify()
+                    else:
+                        # 行き先も時刻も同じものが2つある場合は片方を捨てる
+                        if dests1[0] == dests2[0]:
+                            dests1.pop(0)
+                            mins1.pop(0)
+                            types1.pop(0)
+                            lis1.pop(0)
+                        else:
+                            joined_dests.append(dests1.pop(0))
+                            joined_mins.append(mins1.pop(0))
+                            joined_types.append(types1.pop(0))
+                            soup_text += lis1.pop(0).prettify()
                 elif len(mins1) > 0:
                     joined_dests.append(dests1.pop(0))
                     joined_mins.append(mins1.pop(0))
