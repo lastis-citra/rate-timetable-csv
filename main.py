@@ -369,7 +369,6 @@ def join_lists(dests_list, mins_list, types_list, trains_list, hours, _dests_lis
     _hours_int = list(map(lambda x: int(x), _hours))
 
     if len(hours) == 0:
-        print(mins_list)
         return _dests_list, _mins_list, _types_list, _trains_list, _hours
 
     for i in range(int(min_hour), 25):
@@ -380,20 +379,51 @@ def join_lists(dests_list, mins_list, types_list, trains_list, hours, _dests_lis
         if i_mod in hours_int and i_mod in _hours_int:
             index = hours_int.index(i_mod)
             _index = _hours_int.index(i_mod)
-            joined_dests_list.append(dests_list[index] + _dests_list[_index])
-            joined_mins_list.append(mins_list[index] + _mins_list[_index])
-            joined_types_list.append(types_list[index] + _types_list[_index])
-            lis = trains_list[index].select('li')
-            _lis = _trains_list[_index].select('li')
-            text = '<td><ul>'
-            for li in lis:
-                text += li.prettify()
-            for li in _lis:
-                text += li.prettify()
-            text += '</td></ul>'
-            joined_trains_list.append(BeautifulSoup(text, 'html.parser'))
+
+            soup_text = '<td><ul>'
+            dests1 = dests_list[index]
+            dests2 = _dests_list[_index]
+            mins1 = mins_list[index]
+            mins2 = _mins_list[_index]
+            types1 = types_list[index]
+            types2 =  _types_list[_index]
+            lis1 = trains_list[index].select('li')
+            lis2 = _trains_list[_index].select('li')
+            joined_dests = []
+            joined_mins = []
+            joined_types = []
+
+            while len(mins1) > 0 or len(mins2) > 0:
+                if len(mins1) > 0 and len(mins2) > 0:
+                    # 時刻が小さいものから取り出す
+                    if int(mins1[0]) <= int(mins2[0]):
+                        joined_dests.append(dests1.pop(0))
+                        joined_mins.append(mins1.pop(0))
+                        joined_types.append(types1.pop(0))
+                        soup_text += lis1.pop(0).prettify()
+                    else:
+                        joined_dests.append(dests2.pop(0))
+                        joined_mins.append(mins2.pop(0))
+                        joined_types.append(types2.pop(0))
+                        soup_text += lis2.pop(0).prettify()
+                elif len(mins1) > 0:
+                    joined_dests.append(dests1.pop(0))
+                    joined_mins.append(mins1.pop(0))
+                    joined_types.append(types1.pop(0))
+                    soup_text += lis1.pop(0).prettify()
+                elif len(mins2) > 0:
+                    joined_dests.append(dests2.pop(0))
+                    joined_mins.append(mins2.pop(0))
+                    joined_types.append(types2.pop(0))
+                    soup_text += lis2.pop(0).prettify()
+
+            soup_text += '</td></ul>'
+
+            joined_dests_list.append(joined_dests)
+            joined_mins_list.append(joined_mins)
+            joined_types_list.append(joined_types)
+            joined_trains_list.append(BeautifulSoup(soup_text, 'html.parser'))
             joined_hours.append(hours[index])
-            print()
         elif i_mod in hours_int:
             index = hours_int.index(i_mod)
             joined_dests_list.append(dests_list[index])
@@ -414,8 +444,8 @@ def join_lists(dests_list, mins_list, types_list, trains_list, hours, _dests_lis
             joined_types_list.append(list())
             joined_trains_list.append('')
             joined_hours.append(str(i))
-    print(joined_dests_list)
-    print(joined_mins_list)
+    # print(joined_dests_list)
+    # print(joined_mins_list)
 
     return joined_dests_list, joined_mins_list, joined_types_list, joined_trains_list, joined_hours
 

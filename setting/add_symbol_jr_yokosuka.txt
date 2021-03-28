@@ -1,0 +1,10 @@
+data-dest,海老名,●,black
+data-dest,大和,●,black
+data-dest,新宿,●,black
+data-dest,赤羽,●,black
+data-dest,武蔵浦和,●,black
+data-dest,大宮,●,black
+data-dest,川越,●,black
+data-dest,宇都宮,●,red
+data-dest,小金井,●,red
+data-dest,古河,●,red
