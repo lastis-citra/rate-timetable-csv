@@ -46,6 +46,7 @@ def open_cache(path):
 # TODO: 停車駅が微妙に違うパターンの記号や種別色分けもやりたい
 def output_excel(dests_list, mins_list, types_list, wb, color_setting, hours, min_hour,
                  direction, dw, symbol_setting, trains_list):
+    print(trains_list[0])
 
     ws = wb.add_worksheet(direction + '_' + dw)
 
@@ -144,53 +145,64 @@ def output_excel(dests_list, mins_list, types_list, wb, color_setting, hours, mi
     def replace_symbol(_sheet, _row, _col, _y, _x, dest):
         with open(symbol_setting, 'r', errors='replace', encoding="utf_8") as file:
             line_list = file.readlines()
-            # 白い行
-            if _y % 2 == 0:
-                bg_color = 'white'
-            # 灰色の行
-            else:
-                bg_color = 'grey'
+        # 白い行
+        if _y % 2 == 0:
+            bg_color = 'white'
+        # 灰色の行
+        else:
+            bg_color = 'grey'
 
-            # 行き先が空の場合，write_rich_stringでエラーになるので空にしておく
-            if dest == '':
-                segments = []
-            else:
-                segments = [symbol_color_dict['black_' + bg_color], dest]
+        # 行き先が空の場合，write_rich_stringでエラーになるので空にしておく
+        if dest == '':
+            segments = []
+        else:
+            segments = [symbol_color_dict['black_' + bg_color], dest]
 
-            for line in line_list:
-                attr_name = line.split(',')[0]
-                attr_value = line.split(',')[1]
-                symbol = line.split(',')[2]
-                symbol_color = line.split(',')[3].replace('\n', '')
+        for line in line_list:
+            attr_name = line.split(',')[0]
+            attr_value = line.split(',')[1]
+            symbol = line.split(',')[2]
+            symbol_color = line.split(',')[3].replace('\n', '')
 
-                trains = trains_list[_y]
-                # パディングに使った空の部分は，空の状態でフォント設定だけ入れる
-                if len(trains) == 0:
-                    return _sheet.write(_row, _col, '', symbol_color_dict['black_' + bg_color])
-                lists = list(map(lambda x: x[attr_name], trains.select('li.ek-tooltip')))
-
-                # パディングに使った空の部分は，空の状態でフォント設定だけ入れる
-                if _x >= len(lists):
-                    return _sheet.write(_row, _col, '', symbol_color_dict['black_' + bg_color])
-                if lists[_x] == attr_value:
-                    add_segments = [symbol_color_dict[symbol_color + '_' + bg_color], symbol]
-                    segments = add_segments + segments
-
-            if len(segments) == 0:
-                # [フォント設定, 行き先]の組がない場合，空の状態でフォント設定だけ入れる
+            trains = trains_list[_y]
+            # パディングに使った空の部分は，空の状態でフォント設定だけ入れる
+            if len(trains) == 0:
                 return _sheet.write(_row, _col, '', symbol_color_dict['black_' + bg_color])
-            if len(segments) == 2:
-                # [フォント設定, 行き先]の組が1組しかない場合もwrite_rich_stringが使えないのでwriteにする
-                return _sheet.write(_row, _col, segments[1], segments[0])
-            else:
-                # write_rich_stringの場合，segmentsに入っているセルのフォーマットは無視されるので，最後にセルのフォーマットだけ足す
-                return _sheet.write_rich_string(_row, _col, *segments, symbol_color_dict['black_' + bg_color])
+            lists = list(map(lambda x: x[attr_name], trains.select('li.ek-tooltip')))
+
+            # パディングに使った空の部分は，空の状態でフォント設定だけ入れる
+            if _x >= len(lists):
+                return _sheet.write(_row, _col, '', symbol_color_dict['black_' + bg_color])
+            if lists[_x] == attr_value:
+                add_segments = [symbol_color_dict[symbol_color + '_' + bg_color], symbol]
+                segments = add_segments + segments
+
+        if len(segments) == 0:
+            # [フォント設定, 行き先]の組がない場合，空の状態でフォント設定だけ入れる
+            return _sheet.write(_row, _col, '', symbol_color_dict['black_' + bg_color])
+        if len(segments) == 2:
+            # [フォント設定, 行き先]の組が1組しかない場合もwrite_rich_stringが使えないのでwriteにする
+            return _sheet.write(_row, _col, segments[1], segments[0])
+        else:
+            # write_rich_stringの場合，segmentsに入っているセルのフォーマットは無視されるので，最後にセルのフォーマットだけ足す
+            return _sheet.write_rich_string(_row, _col, *segments, symbol_color_dict['black_' + bg_color])
 
     def set_time_font(_y, _x):
         _y2 = _y // 2
         train_type = types_list_added[_y2][_x]
         type_color = time_color_dict[train_type]
         type_bg_color = time_bg_color_dict[train_type]
+
+        time_font = wb.add_format()
+
+        # 条件フォントのテスト中 TODO:
+        trains = trains_list[_y2]
+        if len(trains) != 0 and direction == 'down':
+            lists = list(map(lambda x: x['data-tx'], trains.select('a')))
+            if _x < len(lists) and re.compile('-1[0-9][0-9]M$').search(lists[_x]):
+                type_color = 'ff0000'
+            elif _x < len(lists) and re.compile('Y$').search(lists[_x]):
+                time_font.set_underline(1)
 
         # 背景色がある種別の場合はそちらを優先する
         if type_bg_color != '':
@@ -202,7 +214,6 @@ def output_excel(dests_list, mins_list, types_list, wb, color_setting, hours, mi
         else:
             bg_color = 'f2f2f2'
 
-        time_font = wb.add_format()
         time_font.set_font('メイリオ')
         time_font.set_size(11)
         time_font.set_font_color(type_color)
@@ -537,6 +548,8 @@ def main_function(file_name, html_dir, excel_dir, setting_dir):
             prepare_join_lists(table_holiday_downs, 'down', 'holiday')
 
             wb.close()
+        else:
+            logging.warning('Already exist: ' + excel_path)
 
 
 if __name__ == '__main__':
