@@ -1,8 +1,8 @@
-94-7/d1,JR南武線_武蔵中原,dest_jr_nambu.txt,type_color_setting.txt,add_symbol_setting.txt,4
-94-17/d1,JR南武線_稲城長沼,dest_jr_nambu.txt,type_color_setting.txt,add_symbol_setting.txt,4
-79-26/d1,JR京浜東北線_大井町,dest_jr_keihin_tohoku.txt,type_color_jr_keihin_tohoku.txt,add_symbol_setting.txt,4
-218-0/d1,東急大井町線_大井町,dest_tokyu_ooimachi.txt,type_color_tokyu_ooimachi.txt,add_symbol_tokyu_ooimachi.txt,4
-213-6/d1,りんかい線_大井町,dest_jr_yokosuka.txt,type_color_jr_saikyo.txt,add_symbol_setting.txt,5
-335-11/d1,阪神本線_武庫川,dest_hanshin.txt,type_color_hanshin.txt,add_symbol_hanshin.txt,4
-335-0/d1,阪神本線_大阪梅田,dest_hanshin.txt,type_color_hanshin.txt,add_symbol_hanshin.txt,4
-164-3/d1+187-11/d1+131-19/d2,JR横須賀線_西大井,dest_jr_yokosuka.txt,type_color_jr_yokosuka.txt,add_symbol_jr_yokosuka.txt,4
+94-7/d1,JR南武線_武蔵中原,dest_jr_nambu.txt,type_color_setting.txt,add_symbol_setting.txt,4,
+94-17/d1,JR南武線_稲城長沼,dest_jr_nambu.txt,type_color_setting.txt,add_symbol_setting.txt,4,
+79-26/d1,JR京浜東北線_大井町,dest_jr_keihin_tohoku.txt,type_color_jr_keihin_tohoku.txt,add_symbol_setting.txt,4,
+218-0/d1,東急大井町線_大井町,dest_tokyu_ooimachi.txt,type_color_tokyu_ooimachi.txt,add_symbol_tokyu_ooimachi.txt,4,
+213-6/d1,りんかい線_大井町,dest_jr_yokosuka.txt,type_color_jr_saikyo.txt,add_symbol_setting.txt,5,
+335-11/d1,阪神本線_武庫川,dest_hanshin.txt,type_color_hanshin.txt,add_symbol_hanshin.txt,4,
+335-0/d1,阪神本線_大阪梅田,dest_hanshin.txt,type_color_hanshin.txt,add_symbol_hanshin.txt,4,
+164-3/d1+187-11/d1+131-19/d2,JR横須賀線_西大井,dest_jr_yokosuka.txt,type_color_jr_yokosuka.txt,add_symbol_jr_yokosuka.txt,4,

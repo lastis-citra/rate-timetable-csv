@@ -309,12 +309,15 @@ def create_time_table(table_soup, dest_setting):
 
     return dests_list, mins_list, types_list, trains_list, hours
 
+# time_date: 特定の日付の時刻表を取得したい場合．空文字の場合は今日が基準
+def prepare_soup(url, html_dir, name, dw, time_date):
+    if time_date == '':
+        today = date.today()
+        day_string = today.strftime('%Y%m%d')
+    else:
+        day_string = time_date
 
-def prepare_soup(url, html_dir, name, dw):
-    today = date.today()
-    today_string = today.strftime('%Y%m%d')
-
-    html_name = today_string + '_' + name + '_' + url.split('/')[0] + '_' + dw + '.html'
+    html_name = day_string + '_' + name + '_' + url.split('/')[0] + '_' + dw + '.html'
     html_path = os.path.join(html_dir, html_name)
 
     # 当日のキャッシュがある場合はキャッシュを利用し，なければダウンロードする
@@ -503,7 +506,9 @@ def main_function(file_name, html_dir, excel_dir, setting_dir):
         color_setting = os.path.join(setting_dir, line.split(',')[3])
         symbol_setting = os.path.join(setting_dir, line.split(',')[4])
         # 何時から始めるか（上りと下りで開始時刻が違う場合など）
-        min_hour = line.split(',')[5].replace('\n', '')
+        min_hour = line.split(',')[5]
+        # 特定の日時の時刻表を取得する場合
+        time_date = line.split(',')[6].replace('\n', '')
 
         print(line_count, '/', len(line_list))
         print('input_url: ' + url_string)
@@ -515,10 +520,20 @@ def main_function(file_name, html_dir, excel_dir, setting_dir):
         table_holiday_ups = []
         table_holiday_downs = []
 
+        # 特定日の時刻表を取得するとき用
+        if time_date == '':
+            add_weekday_url_string = '?dw=0'
+            add_holiday_url_string = '?dw=2'
+            add_path_string = ''
+        else:
+            add_weekday_url_string = '?dt=' + time_date
+            add_holiday_url_string = add_weekday_url_string
+            add_path_string = 'date_of_' + time_date + '_'
+
         # すでに実行済みかどうかを確認するために，一旦soupを取得してpathを調べる
         # pathに更新日時が入っているので，soupを取得しないとpathがわからない
-        _, updated_date = prepare_soup(input_urls[0] + '?dw=0', html_dir, file_name, 'weekday')
-        excel_path = os.path.join(excel_dir, updated_date + '_' + file_name + '.xlsx')
+        _, updated_date = prepare_soup(input_urls[0] + add_weekday_url_string, html_dir, file_name, 'weekday', time_date)
+        excel_path = os.path.join(excel_dir, updated_date + '_' + add_path_string + file_name + '.xlsx')
 
         # すでに実行済みのものは除外する
         if not os.path.exists(excel_path):
@@ -529,13 +544,12 @@ def main_function(file_name, html_dir, excel_dir, setting_dir):
                     reverse_flag = True
 
                 # 平日分
-                soup, updated_date = prepare_soup(input_url + '?dw=0', html_dir, file_name, 'weekday')
+                soup, updated_date = prepare_soup(input_url + add_weekday_url_string, html_dir, file_name, 'weekday', time_date)
                 table_up, table_down = get_each_table(soup, reverse_flag)
                 table_weekday_ups.append(table_up)
                 table_weekday_downs.append(table_down)
 
-                # 休日分
-                soup, _ = prepare_soup(input_url + '?dw=2', html_dir, file_name, 'holiday')
+                soup, _ = prepare_soup(input_url + add_holiday_url_string, html_dir, file_name, 'holiday', time_date)
                 table_up, table_down = get_each_table(soup, reverse_flag)
                 table_holiday_ups.append(table_up)
                 table_holiday_downs.append(table_down)
