@@ -1,0 +1,6 @@
+164-3/d1+187-11/d1+131-19/d2,JR横須賀線_西大井,dest_jr_yokosuka.txt,type_color_jr_yokosuka.txt,add_symbol_jr_yokosuka.txt,4,20211023
+79-26/d1,JR京浜東北線_大井町,dest_jr_keihin_tohoku.txt,type_color_jr_keihin_tohoku.txt,add_symbol_setting.txt,4,20211023
+213-6/d1,りんかい線_大井町,dest_jr_yokosuka.txt,type_color_jr_saikyo.txt,add_symbol_setting.txt,5,20211023
+164-3/d1+187-11/d1+131-19/d2,JR横須賀線_西大井,dest_jr_yokosuka.txt,type_color_jr_yokosuka.txt,add_symbol_jr_yokosuka.txt,4,20211024
+79-26/d1,JR京浜東北線_大井町,dest_jr_keihin_tohoku.txt,type_color_jr_keihin_tohoku.txt,add_symbol_setting.txt,4,20211024
+213-6/d1,りんかい線_大井町,dest_jr_yokosuka.txt,type_color_jr_saikyo.txt,add_symbol_setting.txt,5,20211024
