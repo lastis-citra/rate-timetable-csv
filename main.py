@@ -309,6 +309,7 @@ def create_time_table(table_soup, dest_setting):
 
     return dests_list, mins_list, types_list, trains_list, hours
 
+
 # time_date: 特定の日付の時刻表を取得したい場合．空文字の場合は今日が基準
 def prepare_soup(url, html_dir, name, dw, time_date):
     if time_date == '':
