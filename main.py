@@ -198,7 +198,8 @@ def output_excel(dests_list, mins_list, types_list, wb, color_setting, hours, mi
         # 条件フォントのテスト中 TODO:
         trains = trains_list[_y2]
         if len(trains) != 0 and direction == 'down':
-            lists = list(map(lambda x: x['data-tx'], trains.select('a')))
+            # 各列車のhrefのtx=の値を取り出したい
+            lists = list(map(lambda x: x['href'].split('tx=')[1].split('&dw=')[0], trains.select('a')))
             if _x < len(lists) and re.compile('-1[0-9][0-9]M$').search(lists[_x]):
                 type_color = 'ff0000'
             elif _x < len(lists) and re.compile('Y$').search(lists[_x]):
