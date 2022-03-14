@@ -486,6 +486,11 @@ def main_function(file_name, html_dir, excel_dir, setting_dir):
     line_count = 0
 
     def prepare_join_lists(tables, direction, dw):
+        # print(f'tables: {tables}, direction: {direction}, dw: {dw}')
+        # 終点などで片方向しか時刻表がない場合はスキップする
+        if tables == [None]:
+            return
+
         dests_list = []
         mins_list = []
         types_list = []
