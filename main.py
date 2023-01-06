@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 
 # HTMLをダウンロードしてsoupを返す
 def download_html(url, file_path):
+    print(f'download_url: {url}')
     scraper = cloudscraper.create_scraper(
         browser={
             'browser': 'chrome',
@@ -313,6 +314,7 @@ def create_time_table(table_soup, dest_setting):
 
 # time_date: 特定の日付の時刻表を取得したい場合．空文字の場合は今日が基準
 def prepare_soup(url, html_dir, name, dw, time_date):
+    print(f'url: {url}')
     if time_date == '':
         today = date.today()
         day_string = today.strftime('%Y%m%d')
